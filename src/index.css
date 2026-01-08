@@ -2,57 +2,56 @@
 @tailwind components;
 @tailwind utilities;
 
-/* AI Learning Hub - 深蓝科技风设计系统 */
+/* AI Learning Hub - 浅色现代设计系统 */
 
 @layer base {
   :root {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
 
-    --card: 222 47% 14%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
 
-    --popover: 222 47% 14%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 199 89% 48%;
-    --primary-foreground: 222 47% 11%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 222 47% 11%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 16% 47%;
 
     --accent: 199 89% 48%;
-    --accent-foreground: 222 47% 11%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217 33% 25%;
-    --input: 217 33% 25%;
-    --ring: 199 89% 48%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 217 91% 60%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 222 47% 8%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 199 89% 48%;
-    --sidebar-primary-foreground: 222 47% 11%;
-    --sidebar-accent: 217 33% 17%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217 33% 20%;
-    --sidebar-ring: 199 89% 48%;
+    --sidebar-background: 210 20% 98%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 20% 96%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 214 32% 91%;
+    --sidebar-ring: 217 91% 60%;
 
-    /* 自定义科技风渐变 */
-    --gradient-tech: linear-gradient(135deg, hsl(199 89% 48%) 0%, hsl(217 91% 60%) 100%);
-    --gradient-dark: linear-gradient(180deg, hsl(222 47% 11%) 0%, hsl(222 47% 8%) 100%);
-    --gradient-card: linear-gradient(135deg, hsl(222 47% 16%) 0%, hsl(222 47% 12%) 100%);
+    /* 自定义渐变 */
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(199 89% 48%) 100%);
+    --gradient-subtle: linear-gradient(180deg, hsl(210 20% 98%) 0%, hsl(210 20% 96%) 100%);
     
-    /* 发光效果 */
-    --glow-primary: 0 0 20px hsl(199 89% 48% / 0.3);
-    --glow-strong: 0 0 40px hsl(199 89% 48% / 0.4);
+    /* 阴影 */
+    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow-elevated: 0 10px 15px -3px hsl(0 0% 0% / 0.1), 0 4px 6px -4px hsl(0 0% 0% / 0.1);
   }
 
   .dark {
@@ -65,8 +64,8 @@
     --popover: 222 47% 14%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 199 89% 48%;
-    --primary-foreground: 222 47% 11%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
 
     --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
@@ -75,23 +74,23 @@
     --muted-foreground: 215 20% 65%;
 
     --accent: 199 89% 48%;
-    --accent-foreground: 222 47% 11%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 217 33% 25%;
     --input: 217 33% 25%;
-    --ring: 199 89% 48%;
+    --ring: 217 91% 60%;
 
     --sidebar-background: 222 47% 8%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 199 89% 48%;
-    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 217 33% 17%;
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 217 33% 20%;
-    --sidebar-ring: 199 89% 48%;
+    --sidebar-ring: 217 91% 60%;
   }
 }
 
@@ -102,30 +101,24 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    background: var(--gradient-dark);
-    min-height: 100vh;
   }
 }
 
 @layer utilities {
-  .gradient-tech {
-    background: var(--gradient-tech);
+  .gradient-primary {
+    background: var(--gradient-primary);
   }
   
-  .gradient-card {
-    background: var(--gradient-card);
+  .shadow-card {
+    box-shadow: var(--shadow-card);
   }
   
-  .glow-primary {
-    box-shadow: var(--glow-primary);
-  }
-  
-  .glow-strong {
-    box-shadow: var(--glow-strong);
+  .shadow-elevated {
+    box-shadow: var(--shadow-elevated);
   }
   
   .text-gradient {
-    background: var(--gradient-tech);
+    background: var(--gradient-primary);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

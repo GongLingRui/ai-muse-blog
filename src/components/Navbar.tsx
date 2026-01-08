@@ -1,36 +1,50 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, PenSquare, Home, Info, LogIn, LogOut, User } from "lucide-react";
+import { Menu, X, PenSquare, Home, Info, LogIn, LogOut, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 
-const Navbar = () => {
+interface NavbarProps {
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
+}
+
+const Navbar = ({ searchQuery = "", onSearchChange }: NavbarProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const { isLoggedIn, signOut, user } = useAuth();
   const location = useLocation();
 
   const navLinks = [
-    { to: "/", label: "主页", icon: Home },
+    { to: "/", label: "首页", icon: Home },
     { to: "/write", label: "写文章", icon: PenSquare },
-    { to: "/about", label: "关于我们", icon: Info },
+    { to: "/about", label: "关于", icon: Info },
   ];
 
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
+    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm">
       <div className="container mx-auto px-4">
-        <div className="flex h-16 items-center justify-between">
+        <div className="flex h-16 items-center justify-between gap-4">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-tech glow-primary">
-              <span className="text-lg font-bold text-primary-foreground">AI</span>
+          <Link to="/" className="flex items-center space-x-2 shrink-0">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary shadow-card">
+              <span className="text-lg font-bold text-white">AI</span>
             </div>
-            <span className="text-xl font-bold text-gradient">AI Learning Hub</span>
+            <span className="hidden sm:block text-xl font-bold text-gradient">AI Learning Hub</span>
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Navigation - Center */}
           <div className="hidden md:flex items-center space-x-1">
             {navLinks.map((link) => (
               <Link
@@ -39,8 +53,8 @@ const Navbar = () => {
                 className={cn(
                   "flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
                   isActive(link.to)
-                    ? "bg-primary/10 text-primary glow-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                 )}
               >
                 <link.icon className="h-4 w-4" />
@@ -49,50 +63,101 @@ const Navbar = () => {
             ))}
           </div>
 
-          {/* Auth Button */}
-          <div className="hidden md:flex items-center space-x-4">
-            {isLoggedIn ? (
-              <div className="flex items-center space-x-3">
-                <Button variant="ghost" size="sm" className="text-muted-foreground">
-                  <User className="h-4 w-4 mr-2" />
-                  我的
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={signOut}
-                  className="border-primary/50 text-primary hover:bg-primary/10"
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  登出
-                </Button>
+          {/* Search & User - Right */}
+          <div className="flex items-center gap-3">
+            {/* Search Input */}
+            {onSearchChange && (
+              <div className="hidden sm:flex relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="搜索文章..."
+                  value={searchQuery}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                  className="pl-9 w-[200px] lg:w-[280px] bg-secondary/50 border-border focus:border-primary/50 h-9"
+                />
               </div>
+            )}
+
+            {/* User Avatar / Login */}
+            {isLoggedIn ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
+                    <Avatar className="h-9 w-9 border-2 border-primary/20">
+                      <AvatarImage src={user?.user_metadata?.avatar_url} />
+                      <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                        {user?.email?.[0]?.toUpperCase() || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 bg-card border-border">
+                  <div className="px-3 py-2">
+                    <p className="text-sm font-medium text-foreground">
+                      {user?.user_metadata?.full_name || "用户"}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {user?.email}
+                    </p>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/write" className="cursor-pointer">
+                      <PenSquare className="h-4 w-4 mr-2" />
+                      写文章
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={signOut}
+                    className="text-destructive focus:text-destructive cursor-pointer"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    退出登录
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
               <Link to="/auth">
                 <Button
                   size="sm"
-                  className="gradient-tech text-primary-foreground hover:opacity-90 glow-primary"
+                  className="gradient-primary text-white hover:opacity-90 shadow-card"
                 >
                   <LogIn className="h-4 w-4 mr-2" />
                   登录
                 </Button>
               </Link>
             )}
-          </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden p-2 text-muted-foreground hover:text-foreground"
-            onClick={() => setIsOpen(!isOpen)}
-          >
-            {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
+            {/* Mobile Menu Button */}
+            <button
+              className="md:hidden p-2 text-muted-foreground hover:text-foreground"
+              onClick={() => setIsOpen(!isOpen)}
+            >
+              {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Navigation */}
         {isOpen && (
-          <div className="md:hidden py-4 border-t border-border/50">
-            <div className="flex flex-col space-y-2">
+          <div className="md:hidden py-4 border-t border-border">
+            {/* Mobile Search */}
+            {onSearchChange && (
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="搜索文章..."
+                  value={searchQuery}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                  className="pl-9 bg-secondary/50 border-border"
+                />
+              </div>
+            )}
+
+            <div className="flex flex-col space-y-1">
               {navLinks.map((link) => (
                 <Link
                   key={link.to}
@@ -102,35 +167,24 @@ const Navbar = () => {
                     "flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200",
                     isActive(link.to)
                       ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                   )}
                 >
                   <link.icon className="h-5 w-5" />
                   <span>{link.label}</span>
                 </Link>
               ))}
-              <div className="pt-4 border-t border-border/50">
-                {isLoggedIn ? (
-                  <Button
-                    variant="outline"
-                    className="w-full border-primary/50 text-primary"
-                    onClick={() => {
-                      signOut();
-                      setIsOpen(false);
-                    }}
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    登出
-                  </Button>
-                ) : (
+              
+              {!isLoggedIn && (
+                <div className="pt-4 border-t border-border">
                   <Link to="/auth" onClick={() => setIsOpen(false)}>
-                    <Button className="w-full gradient-tech text-primary-foreground">
+                    <Button className="w-full gradient-primary text-white">
                       <LogIn className="h-4 w-4 mr-2" />
                       登录
                     </Button>
                   </Link>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         )}

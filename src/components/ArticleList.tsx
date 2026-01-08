@@ -18,7 +18,7 @@ const PRESET_TAGS = [
   "模型量化",
 ];
 
-// 模拟文章数据（后续会从数据库获取）
+// 模拟文章数据
 const generateMockArticles = (page: number): Article[] => {
   const titles = [
     "深入理解 Transformer 架构：从 Attention 到 Multi-Head",
@@ -53,13 +53,20 @@ const generateMockArticles = (page: number): Article[] => {
     ["工程", "AI", "大模型"],
   ];
 
+  const images = [
+    "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&h=400&fit=crop",
+    "https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=800&h=400&fit=crop",
+    "https://images.unsplash.com/photo-1676299081847-c3c9b9c6a7a4?w=800&h=400&fit=crop",
+    "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=800&h=400&fit=crop",
+  ];
+
   return Array.from({ length: 4 }, (_, i) => {
     const index = (page * 4 + i) % titles.length;
     return {
       id: `article-${page}-${i}`,
       title: titles[index],
       excerpt: excerpts[index],
-      coverImage: `https://images.unsplash.com/photo-${1677442136019 + index * 1000}-21780ecad995?w=800&h=400&fit=crop`,
+      coverImage: images[index % images.length],
       author: "宫凡",
       publishedAt: new Date(Date.now() - (page * 4 + i) * 86400000).toISOString(),
       tags: tagSets[index],
@@ -67,7 +74,11 @@ const generateMockArticles = (page: number): Article[] => {
   });
 };
 
-const ArticleList = () => {
+interface ArticleListProps {
+  searchQuery?: string;
+}
+
+const ArticleList = ({ searchQuery = "" }: ArticleListProps) => {
   const [articles, setArticles] = useState<Article[]>([]);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -84,15 +95,13 @@ const ArticleList = () => {
     if (loading || !hasMore) return;
 
     setLoading(true);
-    // 模拟 API 延迟
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    await new Promise((resolve) => setTimeout(resolve, 600));
 
     const newArticles = generateMockArticles(page);
     setArticles((prev) => [...prev, ...newArticles]);
     setPage((prev) => prev + 1);
     setLoading(false);
 
-    // 模拟分页限制
     if (page >= 4) {
       setHasMore(false);
     }
@@ -121,23 +130,44 @@ const ArticleList = () => {
     }
   };
 
-  // 过滤文章
-  const filteredArticles =
-    selectedTags.length === 0
-      ? articles
-      : articles.filter((article) =>
-          selectedTags.some((tag) => article.tags.includes(tag))
-        );
+  // 过滤文章（标签 + 搜索）
+  const filteredArticles = articles.filter((article) => {
+    const matchesTags =
+      selectedTags.length === 0 ||
+      selectedTags.some((tag) => article.tags.includes(tag));
+
+    const matchesSearch =
+      searchQuery === "" ||
+      article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      article.tags.some((tag) =>
+        tag.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+
+    return matchesTags && matchesSearch;
+  });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* 标签筛选 */}
-      <div className="sticky top-20 z-40 py-4 bg-background/80 backdrop-blur-xl border-b border-border/50">
+      <div className="p-4 rounded-xl bg-card border border-border shadow-card">
+        <h3 className="text-sm font-medium text-foreground mb-3">按标签筛选</h3>
         <TagFilter
           tags={PRESET_TAGS}
           selectedTags={selectedTags}
           onTagSelect={handleTagSelect}
         />
+      </div>
+
+      {/* 结果统计 */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          共 <span className="font-medium text-foreground">{filteredArticles.length}</span> 篇文章
+          {searchQuery && (
+            <span>
+              ，搜索 "<span className="text-primary">{searchQuery}</span>"
+            </span>
+          )}
+        </p>
       </div>
 
       {/* 文章列表 */}
@@ -160,18 +190,21 @@ const ArticleList = () => {
       )}
 
       {/* 没有更多文章 */}
-      {!hasMore && (
-        <div className="text-center py-8 text-muted-foreground">
-          <p>已加载全部文章</p>
+      {!hasMore && filteredArticles.length > 0 && (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">已加载全部文章</p>
         </div>
       )}
 
       {/* 无匹配结果 */}
       {filteredArticles.length === 0 && !loading && (
         <div className="text-center py-16">
-          <p className="text-xl text-muted-foreground">暂无匹配的文章</p>
-          <p className="text-sm text-muted-foreground mt-2">
-            尝试选择其他标签或清除筛选
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-secondary flex items-center justify-center">
+            <span className="text-2xl">📭</span>
+          </div>
+          <p className="text-xl font-medium text-foreground mb-2">暂无匹配的文章</p>
+          <p className="text-muted-foreground">
+            尝试选择其他标签或修改搜索关键词
           </p>
         </div>
       )}

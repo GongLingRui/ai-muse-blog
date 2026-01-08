@@ -1,17 +1,20 @@
+import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import ArticleList from "@/components/ArticleList";
 
 const Index = () => {
+  const [searchQuery, setSearchQuery] = useState("");
+
   return (
-    <div className="min-h-screen">
-      <Navbar />
+    <div className="min-h-screen bg-background">
+      <Navbar searchQuery={searchQuery} onSearchChange={setSearchQuery} />
       
       <main className="pt-16">
         <HeroSection />
         
-        <section className="container mx-auto px-4 pb-20">
-          <div className="mb-8">
+        <section className="container mx-auto px-4 py-12">
+          <div className="mb-6">
             <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
               最新文章
             </h2>
@@ -20,12 +23,12 @@ const Index = () => {
             </p>
           </div>
           
-          <ArticleList />
+          <ArticleList searchQuery={searchQuery} />
         </section>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border/50 py-8 bg-card/30">
+      <footer className="border-t border-border py-8 bg-secondary/30">
         <div className="container mx-auto px-4 text-center">
           <p className="text-sm text-muted-foreground">
             © 2024 AI Learning Hub. Created by 宫凡
