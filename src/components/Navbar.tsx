@@ -28,7 +28,8 @@ const Navbar = ({ searchQuery = "", onSearchChange }: NavbarProps) => {
 
   const navLinks = [
     { to: "/", label: "首页", icon: Home },
-    { to: "/articles", label: "全部文章", icon: FileText },
+    { to: "/articles", label: "文章", icon: FileText },
+    { to: "/papers", label: "经典论文", icon: FileText },
     { to: "/write", label: "写文章", icon: PenSquare },
     { to: "/about", label: "关于", icon: Info },
   ];

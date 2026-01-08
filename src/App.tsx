@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import WriteArticle from "./pages/WriteArticle";
 import ArticleDetail from "./pages/ArticleDetail";
 import Articles from "./pages/Articles";
+import ClassicPapers from "./pages/ClassicPapers";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ function App() {
               <Route path="/write" element={<WriteArticle />} />
               <Route path="/article/:id" element={<ArticleDetail />} />
               <Route path="/articles" element={<Articles />} />
+              <Route path="/papers" element={<ClassicPapers />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
