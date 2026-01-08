@@ -3,14 +3,11 @@ import { Link, useLocation } from "react-router-dom";
 import { Menu, X, PenSquare, Home, Info, LogIn, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 
-interface NavbarProps {
-  isLoggedIn?: boolean;
-  onLogout?: () => void;
-}
-
-const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
+const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { isLoggedIn, signOut, user } = useAuth();
   const location = useLocation();
 
   const navLinks = [
@@ -63,7 +60,7 @@ const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={onLogout}
+                  onClick={signOut}
                   className="border-primary/50 text-primary hover:bg-primary/10"
                 >
                   <LogOut className="h-4 w-4 mr-2" />
@@ -118,7 +115,7 @@ const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
                     variant="outline"
                     className="w-full border-primary/50 text-primary"
                     onClick={() => {
-                      onLogout?.();
+                      signOut();
                       setIsOpen(false);
                     }}
                   >
