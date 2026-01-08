@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Save, X, Image, Link2, Eye, Edit3, ChevronDown, Check } from "lucide-react";
+import { Save, X, Image, Link2, Eye, Edit3, ChevronDown, Check, Upload } from "lucide-react";
 import MDEditor from "@uiw/react-md-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Popover,
   PopoverContent,
@@ -20,50 +21,36 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/Navbar";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCreateArticle, useTags, useCategories } from "@/hooks";
 import { toast } from "sonner";
-
-// 预设标签
-const PRESET_TAGS = [
-  "大模型",
-  "AI",
-  "工程",
-  "攻击",
-  "Agent",
-  "AIGC",
-  "图像生成",
-  "视频生成",
-  "推理",
-  "模型量化",
-];
 
 const WriteArticle = () => {
   const navigate = useNavigate();
-  const { isLoggedIn, user } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const createArticleMutation = useCreateArticle();
+  const { data: tagsData } = useTags({});
+  const { data: categoriesData } = useCategories({});
+
+  const tags = tagsData?.items || [];
+  const categories = categoriesData?.items || [];
 
   const [title, setTitle] = useState("");
-  const [content, setContent] = useState<string | undefined>(`# 开始写作
-
-在这里输入你的文章内容...
-
-## Markdown 支持
-
-- **粗体** 和 *斜体*
-- \`代码\` 和代码块
-- [链接](https://example.com)
-- 图片插入
-
-\`\`\`python
-# 代码高亮示例
-def hello():
-    print("Hello, AI!")
-\`\`\`
-`);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [content, setContent] = useState<string | undefined>("");
+  const [excerpt, setExcerpt] = useState("");
+  const [coverImage, setCoverImage] = useState("");
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
   const [isPreview, setIsPreview] = useState(false);
-  const [saving, setSaving] = useState(false);
 
   // 图片插入对话框
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
@@ -75,9 +62,25 @@ def hello():
   const [linkUrl, setLinkUrl] = useState("");
   const [linkText, setLinkText] = useState("");
 
-  const handleTagToggle = (tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+  // Auto-generate excerpt from content
+  useEffect(() => {
+    if (content && !excerpt) {
+      const plainText = content
+        .replace(/^#+\s.*$/gm, "") // Remove headings
+        .replace(/!\[.*?\]\(.*?\)/g, "") // Remove images
+        .replace(/\[.*?\]\(.*?\)/g, "") // Remove links
+        .replace(/`{1,3}.*?`{1,3}/g, "") // Remove inline code
+        .replace(/\n/g, " ") // Replace newlines with spaces
+        .trim();
+
+      const generatedExcerpt = plainText.slice(0, 200) + (plainText.length > 200 ? "..." : "");
+      setExcerpt(generatedExcerpt);
+    }
+  }, [content]);
+
+  const handleTagToggle = (tagId: string) => {
+    setSelectedTagIds((prev) =>
+      prev.includes(tagId) ? prev.filter((t) => t !== tagId) : [...prev, tagId]
     );
   };
 
@@ -103,7 +106,7 @@ def hello():
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (publish = true) => {
     if (!title.trim()) {
       toast.error("请输入文章标题");
       return;
@@ -112,21 +115,31 @@ def hello():
       toast.error("请输入文章内容");
       return;
     }
-    if (selectedTags.length === 0) {
-      toast.error("请至少选择一个标签");
-      return;
-    }
 
-    setSaving(true);
-    // TODO: 保存到数据库
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    toast.success("文章保存成功！");
-    setSaving(false);
-    navigate("/");
+    try {
+      await createArticleMutation.mutateAsync({
+        title: title.trim(),
+        content: content.trim(),
+        excerpt: excerpt.trim(),
+        cover_image: coverImage.trim() || undefined,
+        category_id: selectedCategoryId || undefined,
+        tag_ids: selectedTagIds,
+        published: publish,
+      });
+
+      if (publish) {
+        toast.success("文章发布成功！");
+      } else {
+        toast.success("草稿保存成功！");
+      }
+      navigate("/");
+    } catch (error) {
+      console.error("Failed to save article:", error);
+    }
   };
 
   const handleCancel = () => {
-    if (title || (content && content !== `# 开始写作\n\n在这里输入你的文章内容...`)) {
+    if (title || content || excerpt) {
       if (confirm("确定要放弃当前编辑的内容吗？")) {
         navigate("/");
       }
@@ -136,7 +149,7 @@ def hello():
   };
 
   // 未登录提示
-  if (!isLoggedIn) {
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen">
         <Navbar />
@@ -179,14 +192,14 @@ def hello():
               </Button>
               <Button
                 size="sm"
-                onClick={handleSave}
-                disabled={saving}
-                className="gradient-tech text-primary-foreground glow-primary"
+                onClick={() => handleSave(true)}
+                disabled={createArticleMutation.isPending}
+                className="gradient-primary text-primary-foreground shadow-card"
               >
-                {saving ? (
+                {createArticleMutation.isPending ? (
                   <>
                     <span className="animate-spin mr-2">⏳</span>
-                    保存中...
+                    发布中...
                   </>
                 ) : (
                   <>
@@ -212,55 +225,124 @@ def hello():
             />
           </div>
 
-          {/* Tags Selection */}
+          {/* Cover Image */}
           <div className="mb-6">
-            <Label className="text-foreground mb-2 block">文章标签</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full justify-between bg-secondary/30 border-border/50 hover:border-primary/50 h-auto min-h-[44px] py-2"
-                >
-                  <div className="flex flex-wrap gap-2">
-                    {selectedTags.length === 0 ? (
-                      <span className="text-muted-foreground">选择标签...</span>
-                    ) : (
-                      selectedTags.map((tag) => (
-                        <Badge
-                          key={tag}
-                          variant="secondary"
-                          className="bg-primary/20 text-primary border-primary/30"
-                        >
-                          {tag}
-                        </Badge>
-                      ))
-                    )}
-                  </div>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 ml-2" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full min-w-[300px] p-2 bg-card border-border/50" align="start">
-                <div className="grid grid-cols-2 gap-2">
-                  {PRESET_TAGS.map((tag) => (
-                    <button
-                      key={tag}
-                      onClick={() => handleTagToggle(tag)}
-                      className={cn(
-                        "flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all",
-                        selectedTags.includes(tag)
-                          ? "bg-primary/20 text-primary border border-primary/30"
-                          : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground border border-transparent"
-                      )}
-                    >
-                      <span>{tag}</span>
-                      {selectedTags.includes(tag) && (
-                        <Check className="h-4 w-4" />
-                      )}
-                    </button>
+            <Label htmlFor="coverImage" className="text-foreground mb-2 block">
+              封面图片（可选）
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                id="coverImage"
+                placeholder="输入图片 URL..."
+                value={coverImage}
+                onChange={(e) => setCoverImage(e.target.value)}
+                className="flex-1 bg-secondary/30 border-border/50 focus:border-primary/50"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setCoverImage("")}
+                disabled={!coverImage}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            {coverImage && (
+              <div className="mt-3 rounded-lg overflow-hidden border border-border/50">
+                <img src={coverImage} alt="封面预览" className="w-full h-48 object-cover" />
+              </div>
+            )}
+          </div>
+
+          {/* Category Selection */}
+          {categories && categories.length > 0 && (
+            <div className="mb-6">
+              <Label htmlFor="category" className="text-foreground mb-2 block">
+                文章分类（可选）
+              </Label>
+              <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
+                <SelectTrigger className="bg-secondary/30 border-border/50">
+                  <SelectValue placeholder="选择分类" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
                   ))}
-                </div>
-              </PopoverContent>
-            </Popover>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Tags Selection */}
+          {tags && tags.length > 0 && (
+            <div className="mb-6">
+              <Label className="text-foreground mb-2 block">文章标签</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-between bg-secondary/30 border-border/50 hover:border-primary/50 h-auto min-h-[44px] py-2"
+                  >
+                    <div className="flex flex-wrap gap-2">
+                      {selectedTagIds.length === 0 ? (
+                        <span className="text-muted-foreground">选择标签...</span>
+                      ) : (
+                        selectedTagIds.map((tagId) => {
+                          const tag = tags.find((t) => t.id === tagId);
+                          return tag ? (
+                            <Badge
+                              key={tag.id}
+                              variant="secondary"
+                              className="bg-primary/20 text-primary border-primary/30"
+                            >
+                              {tag.name}
+                            </Badge>
+                          ) : null;
+                        })
+                      )}
+                    </div>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 ml-2" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full min-w-[300px] p-2 bg-card border-border/50" align="start">
+                  <div className="grid grid-cols-2 gap-2">
+                    {tags.map((tag) => (
+                      <button
+                        key={tag.id}
+                        onClick={() => handleTagToggle(tag.id)}
+                        className={cn(
+                          "flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all",
+                          selectedTagIds.includes(tag.id)
+                            ? "bg-primary/20 text-primary border border-primary/30"
+                            : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground border border-transparent"
+                        )}
+                      >
+                        <span>{tag.name}</span>
+                        {selectedTagIds.includes(tag.id) && (
+                          <Check className="h-4 w-4" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+
+          {/* Excerpt */}
+          <div className="mb-6">
+            <Label htmlFor="excerpt" className="text-foreground mb-2 block">
+              文章摘要（自动生成，可编辑）
+            </Label>
+            <Textarea
+              id="excerpt"
+              placeholder="文章会自动生成摘要..."
+              value={excerpt}
+              onChange={(e) => setExcerpt(e.target.value)}
+              className="bg-secondary/30 border-border/50 focus:border-primary/50 min-h-[80px]"
+            />
           </div>
 
           {/* Toolbar */}

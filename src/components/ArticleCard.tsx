@@ -1,22 +1,16 @@
 import { Link } from "react-router-dom";
-import { Calendar, User, ArrowRight } from "lucide-react";
+import { Calendar, User, ArrowRight, Heart, Bookmark } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-export interface Article {
-  id: string;
-  title: string;
-  excerpt: string;
-  coverImage?: string;
-  author: string;
-  publishedAt: string;
-  tags: string[];
-}
+import { useToggleLike, useToggleBookmark } from "@/services/queries";
+import { useOptimisticCounter, useOptimisticToggle } from "@/hooks/useOptimisticUpdate";
+import { useState } from "react";
+import { Article as ArticleType } from "@/types";
 
 interface ArticleCardProps {
-  article: Article;
+  article: ArticleType;
   className?: string;
 }
 
@@ -34,12 +28,61 @@ const tagColors: Record<string, string> = {
 };
 
 const ArticleCard = ({ article, className }: ArticleCardProps) => {
+  const toggleLikeMutation = useToggleLike();
+  const toggleBookmarkMutation = useToggleBookmark();
+
+  // Optimistic state for likes
+  const [localLiked, setLocalLiked] = useState(article.is_liked || false);
+  const { count: likeCount, increment: incrementLikes, decrement: decrementLikes } =
+    useOptimisticCounter(article.like_count || 0);
+
+  // Optimistic state for bookmarks
+  const [localBookmarked, setLocalBookmarked] = useState(article.is_bookmarked || false);
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("zh-CN", {
       year: "numeric",
       month: "short",
       day: "numeric",
     });
+  };
+
+  const handleLike = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const newValue = !localLiked;
+    setLocalLiked(newValue);
+
+    try {
+      if (newValue) {
+        await incrementLikes(async () => {
+          const result = await toggleLikeMutation.mutateAsync(article.id);
+          return result.count;
+        });
+      } else {
+        await decrementLikes(async () => {
+          const result = await toggleLikeMutation.mutateAsync(article.id);
+          return result.count;
+        });
+      }
+    } catch (error) {
+      setLocalLiked(!newValue);
+    }
+  };
+
+  const handleBookmark = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const newValue = !localBookmarked;
+    setLocalBookmarked(newValue);
+
+    try {
+      await toggleBookmarkMutation.mutateAsync(article.id);
+    } catch (error) {
+      setLocalBookmarked(!newValue);
+    }
   };
 
   return (
@@ -54,21 +97,21 @@ const ArticleCard = ({ article, className }: ArticleCardProps) => {
         <CardHeader className="pt-6">
           {/* Tags */}
           <div className="flex flex-wrap gap-2 mb-3">
-            {article.tags.slice(0, 3).map((tag) => (
+            {article.tags?.slice(0, 3).map((tag) => (
               <Badge
-                key={tag}
+                key={tag.id}
                 variant="outline"
                 className={cn(
                   "text-xs font-medium",
-                  tagColors[tag] || "bg-secondary text-secondary-foreground border-border"
+                  tagColors[tag.name] || "bg-secondary text-secondary-foreground border-border"
                 )}
               >
-                {tag}
+                {tag.name}
               </Badge>
             ))}
-            {article.tags.length > 3 && (
+            {(article.tags?.length || 0) > 3 && (
               <Badge variant="outline" className="text-xs bg-secondary text-muted-foreground">
-                +{article.tags.length - 3}
+                +{(article.tags?.length || 0) - 3}
               </Badge>
             )}
           </div>
@@ -91,23 +134,52 @@ const ArticleCard = ({ article, className }: ArticleCardProps) => {
           <div className="flex items-center space-x-4 text-xs text-muted-foreground">
             <div className="flex items-center space-x-1">
               <User className="h-3.5 w-3.5" />
-              <span>{article.author}</span>
+              <span>{article.author?.full_name || article.author?.email || "匿名"}</span>
             </div>
             <div className="flex items-center space-x-1">
               <Calendar className="h-3.5 w-3.5" />
-              <span>{formatDate(article.publishedAt)}</span>
+              <span>{formatDate(article.created_at)}</span>
             </div>
           </div>
 
-          {/* Read More */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-primary hover:text-primary/80 hover:bg-primary/5 p-0 h-auto font-medium"
-          >
-            阅读更多
-            <ArrowRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-1" />
-          </Button>
+          {/* Actions */}
+          <div className="flex items-center space-x-1">
+            {/* Like Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLike}
+              className={cn(
+                "h-8 px-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20",
+                localLiked && "text-red-500 bg-red-50 dark:bg-red-950/20"
+              )}
+            >
+              <Heart className={cn("h-4 w-4", localLiked && "fill-current")} />
+              <span className="ml-1 text-xs">{likeCount}</span>
+            </Button>
+
+            {/* Bookmark Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBookmark}
+              className={cn(
+                "h-8 px-2 text-muted-foreground hover:text-primary hover:bg-primary/5",
+                localBookmarked && "text-primary bg-primary/5"
+              )}
+            >
+              <Bookmark className={cn("h-4 w-4", localBookmarked && "fill-current")} />
+            </Button>
+
+            {/* Read More */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-primary hover:text-primary/80 hover:bg-primary/5 p-0 h-8 font-medium"
+            >
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Button>
+          </div>
         </CardFooter>
       </Card>
     </Link>

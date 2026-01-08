@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { z } from "zod";
 import Navbar from "@/components/Navbar";
 
@@ -27,6 +27,7 @@ const registerSchema = z.object({
 
 const Auth = () => {
   const navigate = useNavigate();
+  const { login, register } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -45,7 +46,7 @@ const Auth = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    // 清除对应字段的错误
+    // Clear corresponding field error
     setFieldErrors((prev) => ({ ...prev, [name]: "" }));
     setError(null);
   };
@@ -57,7 +58,7 @@ const Auth = () => {
     setFieldErrors({});
 
     try {
-      // 验证表单
+      // Validate form
       if (isLogin) {
         loginSchema.parse(formData);
       } else {
@@ -80,87 +81,32 @@ const Auth = () => {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
+        await login({
           email: formData.email,
           password: formData.password,
         });
-
-        if (error) {
-          if (error.message.includes("Invalid login credentials")) {
-            setError("邮箱或密码错误，请重试");
-          } else {
-            setError(error.message);
-          }
-          return;
-        }
-
         navigate("/");
       } else {
-        const { error } = await supabase.auth.signUp({
+        await register({
           email: formData.email,
           password: formData.password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-          },
         });
-
-        if (error) {
-          if (error.message.includes("already registered")) {
-            setError("该邮箱已被注册，请直接登录");
-          } else {
-            setError(error.message);
-          }
-          return;
-        }
-
         setSuccess("注册成功！正在跳转...");
         setTimeout(() => navigate("/"), 1500);
       }
     } catch (err) {
-      setError("发生未知错误，请稍后重试");
+      // Error handling is done in the AuthContext
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
-    setError(null);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/`,
-      },
-    });
-
-    if (error) {
-      setError("Google 登录失败，请稍后重试");
-    }
+    setError("Google 登录功能暂未开放");
   };
 
   const handleForgotPassword = async () => {
-    if (!formData.email) {
-      setFieldErrors({ email: "请先输入邮箱地址" });
-      return;
-    }
-
-    try {
-      z.string().email().parse(formData.email);
-    } catch {
-      setFieldErrors({ email: "请输入有效的邮箱地址" });
-      return;
-    }
-
-    setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
-      redirectTo: `${window.location.origin}/auth`,
-    });
-    setLoading(false);
-
-    if (error) {
-      setError("发送重置邮件失败，请稍后重试");
-    } else {
-      setSuccess("密码重置邮件已发送，请检查您的邮箱");
-    }
+    setError("密码重置功能暂未开放");
   };
 
   return (
@@ -208,13 +154,13 @@ const Auth = () => {
               </Alert>
             )}
 
-            {/* OAuth Buttons */}
+            {/* OAuth Buttons - Disabled */}
             <div className="space-y-3">
               <Button
                 variant="outline"
                 className="w-full border-border/50 bg-secondary/30 hover:bg-secondary/50 hover:border-primary/50"
                 onClick={handleGoogleLogin}
-                disabled={loading}
+                disabled={true}
               >
                 <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
                   <path
@@ -234,7 +180,7 @@ const Auth = () => {
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                   />
                 </svg>
-                使用 Google 账号{isLogin ? "登录" : "注册"}
+                使用 Google 账号{isLogin ? "登录" : "注册"}（暂未开放）
               </Button>
             </div>
 

@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 
 interface NavbarProps {
@@ -22,7 +22,7 @@ interface NavbarProps {
 
 const Navbar = ({ searchQuery = "", onSearchChange }: NavbarProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const { isLoggedIn, signOut, user } = useAuth();
+  const { isAuthenticated, logout, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
 
@@ -99,12 +99,12 @@ const Navbar = ({ searchQuery = "", onSearchChange }: NavbarProps) => {
             </Button>
 
             {/* User Avatar / Login */}
-            {isLoggedIn ? (
+            {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
                     <Avatar className="h-9 w-9 border-2 border-primary/20">
-                      <AvatarImage src={user?.user_metadata?.avatar_url} />
+                      <AvatarImage src={user?.avatar_url} />
                       <AvatarFallback className="bg-primary/10 text-primary font-medium">
                         {user?.email?.[0]?.toUpperCase() || "U"}
                       </AvatarFallback>
@@ -114,7 +114,7 @@ const Navbar = ({ searchQuery = "", onSearchChange }: NavbarProps) => {
                 <DropdownMenuContent align="end" className="w-56 bg-card border-border">
                   <div className="px-3 py-2">
                     <p className="text-sm font-medium text-foreground">
-                      {user?.user_metadata?.full_name || "用户"}
+                      {user?.username || "用户"}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
                       {user?.email}
@@ -129,7 +129,7 @@ const Navbar = ({ searchQuery = "", onSearchChange }: NavbarProps) => {
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    onClick={signOut}
+                    onClick={logout}
                     className="text-destructive focus:text-destructive cursor-pointer"
                   >
                     <LogOut className="h-4 w-4 mr-2" />
@@ -193,8 +193,8 @@ const Navbar = ({ searchQuery = "", onSearchChange }: NavbarProps) => {
                   <span>{link.label}</span>
                 </Link>
               ))}
-              
-              {!isLoggedIn && (
+
+              {!isAuthenticated && (
                 <div className="pt-4 border-t border-border">
                   <Link to="/auth" onClick={() => setIsOpen(false)}>
                     <Button className="w-full gradient-primary text-white">
