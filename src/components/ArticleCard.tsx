@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Calendar, User, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export interface Article {
@@ -20,16 +21,16 @@ interface ArticleCardProps {
 }
 
 const tagColors: Record<string, string> = {
-  "大模型": "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  "AI": "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
-  "工程": "bg-green-500/20 text-green-400 border-green-500/30",
-  "攻击": "bg-red-500/20 text-red-400 border-red-500/30",
-  "Agent": "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  "AIGC": "bg-pink-500/20 text-pink-400 border-pink-500/30",
-  "图像生成": "bg-orange-500/20 text-orange-400 border-orange-500/30",
-  "视频生成": "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-  "推理": "bg-indigo-500/20 text-indigo-400 border-indigo-500/30",
-  "模型量化": "bg-teal-500/20 text-teal-400 border-teal-500/30",
+  "大模型": "bg-blue-100 text-blue-700 border-blue-200",
+  "AI": "bg-cyan-100 text-cyan-700 border-cyan-200",
+  "工程": "bg-green-100 text-green-700 border-green-200",
+  "攻击": "bg-red-100 text-red-700 border-red-200",
+  "Agent": "bg-purple-100 text-purple-700 border-purple-200",
+  "AIGC": "bg-pink-100 text-pink-700 border-pink-200",
+  "图像生成": "bg-orange-100 text-orange-700 border-orange-200",
+  "视频生成": "bg-yellow-100 text-yellow-700 border-yellow-200",
+  "推理": "bg-indigo-100 text-indigo-700 border-indigo-200",
+  "模型量化": "bg-teal-100 text-teal-700 border-teal-200",
 };
 
 const ArticleCard = ({ article, className }: ArticleCardProps) => {
@@ -45,8 +46,8 @@ const ArticleCard = ({ article, className }: ArticleCardProps) => {
     <Link to={`/article/${article.id}`}>
       <Card
         className={cn(
-          "group overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300",
-          "hover:border-primary/50 hover:bg-card/80 hover:glow-primary hover:-translate-y-1",
+          "group overflow-hidden border-border bg-card transition-all duration-300 shadow-card",
+          "hover:shadow-elevated hover:-translate-y-1 hover:border-primary/30",
           className
         )}
       >
@@ -56,9 +57,8 @@ const ArticleCard = ({ article, className }: ArticleCardProps) => {
             <img
               src={article.coverImage}
               alt={article.title}
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
           </div>
         )}
 
@@ -71,33 +71,33 @@ const ArticleCard = ({ article, className }: ArticleCardProps) => {
                 variant="outline"
                 className={cn(
                   "text-xs font-medium",
-                  tagColors[tag] || "bg-secondary/50 text-secondary-foreground border-secondary"
+                  tagColors[tag] || "bg-secondary text-secondary-foreground border-border"
                 )}
               >
                 {tag}
               </Badge>
             ))}
             {article.tags.length > 3 && (
-              <Badge variant="outline" className="text-xs bg-secondary/50 text-muted-foreground">
+              <Badge variant="outline" className="text-xs bg-secondary text-muted-foreground">
                 +{article.tags.length - 3}
               </Badge>
             )}
           </div>
 
           {/* Title */}
-          <h3 className="text-xl font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
+          <h3 className="text-lg font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
             {article.title}
           </h3>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="pt-0">
           {/* Excerpt */}
-          <p className="text-muted-foreground text-sm line-clamp-3 leading-relaxed">
+          <p className="text-muted-foreground text-sm line-clamp-2 leading-relaxed">
             {article.excerpt}
           </p>
         </CardContent>
 
-        <CardFooter className="flex items-center justify-between pt-4 border-t border-border/50">
+        <CardFooter className="flex items-center justify-between pt-4 border-t border-border">
           {/* Meta Info */}
           <div className="flex items-center space-x-4 text-xs text-muted-foreground">
             <div className="flex items-center space-x-1">
@@ -111,10 +111,14 @@ const ArticleCard = ({ article, className }: ArticleCardProps) => {
           </div>
 
           {/* Read More */}
-          <div className="flex items-center text-primary text-sm font-medium opacity-0 -translate-x-2 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0">
-            阅读
-            <ArrowRight className="h-4 w-4 ml-1" />
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-primary hover:text-primary/80 hover:bg-primary/5 p-0 h-auto font-medium"
+          >
+            阅读更多
+            <ArrowRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-1" />
+          </Button>
         </CardFooter>
       </Card>
     </Link>

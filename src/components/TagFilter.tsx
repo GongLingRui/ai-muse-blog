@@ -15,8 +15,8 @@ const TagFilter = ({ tags, selectedTags, onTagSelect }: TagFilterProps) => {
         className={cn(
           "cursor-pointer transition-all duration-200 hover:scale-105",
           selectedTags.length === 0
-            ? "bg-primary/20 text-primary border-primary/50 glow-primary"
-            : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/50 hover:text-primary"
+            ? "bg-primary text-primary-foreground border-primary shadow-card"
+            : "bg-secondary text-muted-foreground border-border hover:border-primary/50 hover:text-primary"
         )}
         onClick={() => onTagSelect("")}
       >
@@ -29,8 +29,8 @@ const TagFilter = ({ tags, selectedTags, onTagSelect }: TagFilterProps) => {
           className={cn(
             "cursor-pointer transition-all duration-200 hover:scale-105",
             selectedTags.includes(tag)
-              ? "bg-primary/20 text-primary border-primary/50 glow-primary"
-              : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/50 hover:text-primary"
+              ? "bg-primary text-primary-foreground border-primary shadow-card"
+              : "bg-secondary text-muted-foreground border-border hover:border-primary/50 hover:text-primary"
           )}
           onClick={() => onTagSelect(tag)}
         >
