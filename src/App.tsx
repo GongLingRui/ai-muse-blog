@@ -11,6 +11,7 @@ import ArticleDetail from "./pages/ArticleDetail";
 import Articles from "./pages/Articles";
 import ClassicPapers from "./pages/ClassicPapers";
 import TagsManagement from "./pages/TagsManagement";
+import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ function App() {
               <Route path="/articles" element={<Articles />} />
               <Route path="/papers" element={<ClassicPapers />} />
               <Route path="/tags" element={<TagsManagement />} />
+              <Route path="/about" element={<About />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
