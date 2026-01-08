@@ -51,18 +51,7 @@ const ArticleCard = ({ article, className }: ArticleCardProps) => {
           className
         )}
       >
-        {/* Cover Image */}
-        {article.coverImage && (
-          <div className="relative h-48 overflow-hidden">
-            <img
-              src={article.coverImage}
-              alt={article.title}
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-          </div>
-        )}
-
-        <CardHeader className={cn(!article.coverImage && "pt-6")}>
+        <CardHeader className="pt-6">
           {/* Tags */}
           <div className="flex flex-wrap gap-2 mb-3">
             {article.tags.slice(0, 3).map((tag) => (
