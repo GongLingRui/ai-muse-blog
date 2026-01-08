@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, PenSquare, Home, Info, LogIn, LogOut, Search, Sun, Moon, FileText } from "lucide-react";
+import { Menu, X, PenSquare, Home, Info, LogIn, LogOut, Search, Sun, Moon, FileText, BookOpen, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -29,7 +29,8 @@ const Navbar = ({ searchQuery = "", onSearchChange }: NavbarProps) => {
   const navLinks = [
     { to: "/", label: "首页", icon: Home },
     { to: "/articles", label: "文章", icon: FileText },
-    { to: "/papers", label: "经典论文", icon: FileText },
+    { to: "/papers", label: "经典论文", icon: BookOpen },
+    { to: "/tags", label: "标签", icon: Tag },
     { to: "/write", label: "写文章", icon: PenSquare },
     { to: "/about", label: "关于", icon: Info },
   ];
