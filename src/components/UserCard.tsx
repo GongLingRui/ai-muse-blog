@@ -6,7 +6,7 @@ import { MapPin, Link as LinkIcon, Calendar } from "lucide-react";
 import { UserProfile } from "@/types";
 import { cn } from "@/lib/utils";
 import { useFollowUser, useUnfollowUser, useFollowStatus } from "@/services/queries";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks";
 import { UserCheck, UserPlus } from "lucide-react";
 import { useState } from "react";
 

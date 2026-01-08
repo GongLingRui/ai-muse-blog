@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 // Mock dependencies
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks', () => ({
   useAuth: vi.fn(),
 }))
 
@@ -48,7 +48,7 @@ describe('CommentForm', () => {
   })
 
   it('shows login prompt when user is not authenticated', () => {
-    const { useAuth } = require('@/hooks/useAuth')
+    const { useAuth } = require('@/hooks')
     useAuth.mockReturnValue({ user: null })
 
     renderWithProviders(<CommentForm articleId="1" />)
@@ -58,7 +58,7 @@ describe('CommentForm', () => {
   })
 
   it('renders comment form when user is authenticated', () => {
-    const { useAuth } = require('@/hooks/useAuth')
+    const { useAuth } = require('@/hooks')
     useAuth.mockReturnValue({ user: mockUser })
 
     renderWithProviders(<CommentForm articleId="1" />)
@@ -68,7 +68,7 @@ describe('CommentForm', () => {
   })
 
   it('submits comment successfully', async () => {
-    const { useAuth } = require('@/hooks/useAuth')
+    const { useAuth } = require('@/hooks')
     useAuth.mockReturnValue({ user: mockUser })
 
     const onSuccess = vi.fn()
@@ -95,7 +95,7 @@ describe('CommentForm', () => {
   })
 
   it('shows error when submitting empty comment', async () => {
-    const { useAuth } = require('@/hooks/useAuth')
+    const { useAuth } = require('@/hooks')
     useAuth.mockReturnValue({ user: mockUser })
 
     renderWithProviders(<CommentForm articleId="1" />)
@@ -109,7 +109,7 @@ describe('CommentForm', () => {
   })
 
   it('disables submit button when content is empty', () => {
-    const { useAuth } = require('@/hooks/useAuth')
+    const { useAuth } = require('@/hooks')
     useAuth.mockReturnValue({ user: mockUser })
 
     renderWithProviders(<CommentForm articleId="1" />)
@@ -119,7 +119,7 @@ describe('CommentForm', () => {
   })
 
   it('enables submit button when content is entered', () => {
-    const { useAuth } = require('@/hooks/useAuth')
+    const { useAuth } = require('@/hooks')
     useAuth.mockReturnValue({ user: mockUser })
 
     renderWithProviders(<CommentForm articleId="1" />)
@@ -133,7 +133,7 @@ describe('CommentForm', () => {
   })
 
   it('shows cancel button when onCancel is provided', () => {
-    const { useAuth } = require('@/hooks/useAuth')
+    const { useAuth } = require('@/hooks')
     useAuth.mockReturnValue({ user: mockUser })
 
     const onCancel = vi.fn()
@@ -143,7 +143,7 @@ describe('CommentForm', () => {
   })
 
   it('calls onCancel when cancel button is clicked', () => {
-    const { useAuth } = require('@/hooks/useAuth')
+    const { useAuth } = require('@/hooks')
     useAuth.mockReturnValue({ user: mockUser })
 
     const onCancel = vi.fn()
@@ -156,7 +156,7 @@ describe('CommentForm', () => {
   })
 
   it('shows reply button when parentId is provided', () => {
-    const { useAuth } = require('@/hooks/useAuth')
+    const { useAuth } = require('@/hooks')
     useAuth.mockReturnValue({ user: mockUser })
 
     renderWithProviders(<CommentForm articleId="1" parentId="parent-1" />)
@@ -165,7 +165,7 @@ describe('CommentForm', () => {
   })
 
   it('uses custom placeholder', () => {
-    const { useAuth } = require('@/hooks/useAuth')
+    const { useAuth } = require('@/hooks')
     useAuth.mockReturnValue({ user: mockUser })
 
     renderWithProviders(
@@ -176,7 +176,7 @@ describe('CommentForm', () => {
   })
 
   it('hides avatar when showAvatar is false', () => {
-    const { useAuth } = require('@/hooks/useAuth')
+    const { useAuth } = require('@/hooks')
     useAuth.mockReturnValue({ user: mockUser })
 
     const { container } = renderWithProviders(
@@ -188,7 +188,7 @@ describe('CommentForm', () => {
   })
 
   it('clears content after successful submission', async () => {
-    const { useAuth } = require('@/hooks/useAuth')
+    const { useAuth } = require('@/hooks')
     useAuth.mockReturnValue({ user: mockUser })
 
     const { useCreateComment } = require('@/services/queries')
@@ -209,7 +209,7 @@ describe('CommentForm', () => {
   })
 
   it('disables form during submission', async () => {
-    const { useAuth } = require('@/hooks/useAuth')
+    const { useAuth } = require('@/hooks')
     useAuth.mockReturnValue({ user: mockUser })
 
     const { useCreateComment } = require('@/services/queries')
