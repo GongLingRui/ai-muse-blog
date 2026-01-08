@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, Filter, ChevronRight } from "lucide-react";
+import { Search, Filter, ChevronRight, ChevronLeft, PanelLeftClose, PanelLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -120,45 +120,74 @@ const Articles = () => {
       <Navbar />
 
       <div className="pt-16 flex">
-        {/* Sidebar - Tags */}
+        {/* Sidebar - Tags (Desktop) */}
         <aside
           className={cn(
             "fixed left-0 top-16 h-[calc(100vh-4rem)] bg-card border-r border-border transition-all duration-300 z-40",
-            sidebarOpen ? "w-64" : "w-0 overflow-hidden",
+            sidebarOpen ? "w-64" : "w-14",
             "hidden md:block"
           )}
         >
-          <div className="p-4 border-b border-border">
-            <h2 className="font-semibold text-foreground flex items-center gap-2">
-              <Filter className="h-4 w-4 text-primary" />
-              文章分类
-            </h2>
+          <div className="p-4 border-b border-border flex items-center justify-between">
+            {sidebarOpen ? (
+              <>
+                <h2 className="font-semibold text-foreground flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-primary" />
+                  文章分类
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <PanelLeftClose className="h-4 w-4" />
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 mx-auto"
+                onClick={() => setSidebarOpen(true)}
+              >
+                <PanelLeft className="h-4 w-4" />
+              </Button>
+            )}
           </div>
           <ScrollArea className="h-[calc(100%-60px)]">
-            <div className="p-2">
+            <div className={cn("p-2", !sidebarOpen && "px-1")}>
               {PRESET_TAGS.map((tag) => (
                 <button
                   key={tag.name}
                   onClick={() => setSelectedTag(tag.name)}
+                  title={!sidebarOpen ? tag.name : undefined}
                   className={cn(
-                    "w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 mb-1",
+                    "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 mb-1",
+                    sidebarOpen ? "justify-between px-4 py-3" : "justify-center py-3",
                     selectedTag === tag.name
                       ? "bg-primary text-primary-foreground shadow-card"
                       : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                   )}
                 >
-                  <span>{tag.name}</span>
-                  <Badge
-                    variant="secondary"
-                    className={cn(
-                      "text-xs",
-                      selectedTag === tag.name
-                        ? "bg-primary-foreground/20 text-primary-foreground"
-                        : "bg-secondary text-muted-foreground"
-                    )}
-                  >
-                    {tag.count}
-                  </Badge>
+                  {sidebarOpen ? (
+                    <>
+                      <span>{tag.name}</span>
+                      <Badge
+                        variant="secondary"
+                        className={cn(
+                          "text-xs",
+                          selectedTag === tag.name
+                            ? "bg-primary-foreground/20 text-primary-foreground"
+                            : "bg-secondary text-muted-foreground"
+                        )}
+                      >
+                        {tag.count}
+                      </Badge>
+                    </>
+                  ) : (
+                    <span className="text-xs">{tag.name.slice(0, 2)}</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -235,7 +264,7 @@ const Articles = () => {
         <main
           className={cn(
             "flex-1 transition-all duration-300 min-h-[calc(100vh-4rem)]",
-            sidebarOpen ? "md:ml-64" : "md:ml-0"
+            sidebarOpen ? "md:ml-64" : "md:ml-14"
           )}
         >
           <div className="p-6 max-w-6xl mx-auto">
