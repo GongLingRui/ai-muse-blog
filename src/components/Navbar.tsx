@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, PenSquare, Home, Info, LogIn, LogOut, Search } from "lucide-react";
+import { Menu, X, PenSquare, Home, Info, LogIn, LogOut, Search, Sun, Moon, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/hooks/useTheme";
 
 interface NavbarProps {
   searchQuery?: string;
@@ -22,10 +23,12 @@ interface NavbarProps {
 const Navbar = ({ searchQuery = "", onSearchChange }: NavbarProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const { isLoggedIn, signOut, user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const location = useLocation();
 
   const navLinks = [
     { to: "/", label: "首页", icon: Home },
+    { to: "/articles", label: "全部文章", icon: FileText },
     { to: "/write", label: "写文章", icon: PenSquare },
     { to: "/about", label: "关于", icon: Info },
   ];
@@ -45,13 +48,13 @@ const Navbar = ({ searchQuery = "", onSearchChange }: NavbarProps) => {
           </Link>
 
           {/* Desktop Navigation - Center */}
-          <div className="hidden md:flex items-center space-x-1">
+          <div className="hidden lg:flex items-center space-x-1">
             {navLinks.map((link) => (
               <Link
                 key={link.to}
                 to={link.to}
                 className={cn(
-                  "flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                  "flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
                   isActive(link.to)
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary"
@@ -64,7 +67,7 @@ const Navbar = ({ searchQuery = "", onSearchChange }: NavbarProps) => {
           </div>
 
           {/* Search & User - Right */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {/* Search Input */}
             {onSearchChange && (
               <div className="hidden sm:flex relative">
@@ -74,10 +77,24 @@ const Navbar = ({ searchQuery = "", onSearchChange }: NavbarProps) => {
                   placeholder="搜索文章..."
                   value={searchQuery}
                   onChange={(e) => onSearchChange(e.target.value)}
-                  className="pl-9 w-[200px] lg:w-[280px] bg-secondary/50 border-border focus:border-primary/50 h-9"
+                  className="pl-9 w-[180px] lg:w-[240px] bg-secondary/50 border-border focus:border-primary/50 h-9"
                 />
               </div>
             )}
+
+            {/* Theme Toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              className="h-9 w-9 text-muted-foreground hover:text-foreground"
+            >
+              {theme === "light" ? (
+                <Moon className="h-5 w-5" />
+              ) : (
+                <Sun className="h-5 w-5" />
+              )}
+            </Button>
 
             {/* User Avatar / Login */}
             {isLoggedIn ? (
@@ -132,7 +149,7 @@ const Navbar = ({ searchQuery = "", onSearchChange }: NavbarProps) => {
 
             {/* Mobile Menu Button */}
             <button
-              className="md:hidden p-2 text-muted-foreground hover:text-foreground"
+              className="lg:hidden p-2 text-muted-foreground hover:text-foreground"
               onClick={() => setIsOpen(!isOpen)}
             >
               {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -142,7 +159,7 @@ const Navbar = ({ searchQuery = "", onSearchChange }: NavbarProps) => {
 
         {/* Mobile Navigation */}
         {isOpen && (
-          <div className="md:hidden py-4 border-t border-border">
+          <div className="lg:hidden py-4 border-t border-border">
             {/* Mobile Search */}
             {onSearchChange && (
               <div className="relative mb-4">
