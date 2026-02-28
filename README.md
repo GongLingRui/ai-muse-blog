@@ -1,8 +1,8 @@
 # AI Paper Reading Platform - Frontend
 
-> **仓库地址**: `[YOUR_FRONTEND_REPO_URL]`
+> **仓库地址**: `[[YOUR_FRONTEND_REPO_URL]](https://github.com/GongLingRui/ai-muse-blog)`
 > **在线地址**: `[YOUR_FRONTEND_DEPLOY_URL]`
-> **后端仓库**: `[YOUR_BACKEND_REPO_URL]`
+> **后端仓库**: `[[YOUR_BACKEND_REPO_URL](https://github.com/GongLingRui/ai-blog-backend)]`
 
 AI论文阅读平台前端应用，基于 React + TypeScript + Vite 构建，提供简洁美观的用户界面。
 
