@@ -1,10 +1,7 @@
-// Export all hooks from a single file for convenience
-export { useAuth } from '@/contexts/AuthContext';
+// Export all hooks from this directory
+export { useArticles, useArticle, useCreateArticle, useUpdateArticle, useDeleteArticle, useLikeArticle, useUnlikeArticle } from './useArticles';
+export { useTags, useTag, useCreateTag, useUpdateTag, useDeleteTag } from './useTags';
+export { useCategories, useCategory, useCreateCategory, useUpdateCategory, useDeleteCategory } from './useCategories';
 
-export * from './useArticles';
-export * from './useComments';
-export * from './useTags';
-export * from './useCategories';
-export * from './useBookmarks';
-export * from './useFollows';
-export * from './useStats';
+// Re-export useAuth from contexts for convenience
+export { useAuth } from '../contexts/AuthContext';

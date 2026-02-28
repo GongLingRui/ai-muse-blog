@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ChevronDown,
   ChevronRight,
@@ -7,13 +7,12 @@ import {
   FileText,
   Edit3,
   Plus,
-  Trash2,
-  GripVertical,
   Save,
   X,
   BookOpen,
   Lightbulb,
   User,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +35,8 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/Navbar";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 // 论文类型
 interface Paper {
@@ -45,9 +46,10 @@ interface Paper {
   authors: string;
   year: number;
   venue: string;
-  paperUrl?: string;
-  codeUrl?: string;
+  paper_url?: string;
+  code_url?: string;
   tags: string[];
+  collection_order: number;
 }
 
 // 合集类型
@@ -55,199 +57,78 @@ interface Collection {
   id: string;
   title: string;
   description: string;
+  icon?: string;
+  color?: string;
   papers: Paper[];
+  display_order: number;
 }
 
-// 模拟数据
-const mockCollections: Collection[] = [
-  {
-    id: "1",
-    title: "大模型基础论文",
-    description: "理解现代大语言模型的核心基础，从 Transformer 到 GPT 系列的演进路径。",
-    papers: [
-      {
-        id: "p1",
-        title: "Attention Is All You Need",
-        description: "提出 Transformer 架构，奠定了现代 NLP 的基础，引入自注意力机制替代 RNN。",
-        authors: "Vaswani et al.",
-        year: 2017,
-        venue: "NeurIPS",
-        paperUrl: "https://arxiv.org/abs/1706.03762",
-        codeUrl: "https://github.com/tensorflow/tensor2tensor",
-        tags: ["大模型", "Transformer"],
-      },
-      {
-        id: "p2",
-        title: "BERT: Pre-training of Deep Bidirectional Transformers",
-        description: "双向预训练模型，开启预训练-微调范式，在多个 NLP 任务上取得突破。",
-        authors: "Devlin et al.",
-        year: 2018,
-        venue: "NAACL",
-        paperUrl: "https://arxiv.org/abs/1810.04805",
-        codeUrl: "https://github.com/google-research/bert",
-        tags: ["大模型", "预训练"],
-      },
-      {
-        id: "p3",
-        title: "Language Models are Few-Shot Learners (GPT-3)",
-        description: "175B 参数的大模型，展示了上下文学习能力，开启大模型时代。",
-        authors: "Brown et al.",
-        year: 2020,
-        venue: "NeurIPS",
-        paperUrl: "https://arxiv.org/abs/2005.14165",
-        tags: ["大模型", "GPT"],
-      },
-      {
-        id: "p4",
-        title: "Training language models to follow instructions (InstructGPT)",
-        description: "通过 RLHF 使模型更好地遵循人类指令，是 ChatGPT 的技术基础。",
-        authors: "Ouyang et al.",
-        year: 2022,
-        venue: "NeurIPS",
-        paperUrl: "https://arxiv.org/abs/2203.02155",
-        tags: ["大模型", "RLHF"],
-      },
-    ],
-  },
-  {
-    id: "2",
-    title: "扩散模型与图像生成",
-    description: "从 DDPM 到 Stable Diffusion，理解扩散模型的原理与图像生成的前沿技术。",
-    papers: [
-      {
-        id: "p5",
-        title: "Denoising Diffusion Probabilistic Models (DDPM)",
-        description: "扩散模型的奠基性工作，提出去噪扩散概率模型的理论框架。",
-        authors: "Ho et al.",
-        year: 2020,
-        venue: "NeurIPS",
-        paperUrl: "https://arxiv.org/abs/2006.11239",
-        codeUrl: "https://github.com/hojonathanho/diffusion",
-        tags: ["图像生成", "扩散模型"],
-      },
-      {
-        id: "p6",
-        title: "High-Resolution Image Synthesis with Latent Diffusion Models",
-        description: "在潜在空间进行扩散，大幅降低计算成本，是 Stable Diffusion 的核心。",
-        authors: "Rombach et al.",
-        year: 2022,
-        venue: "CVPR",
-        paperUrl: "https://arxiv.org/abs/2112.10752",
-        codeUrl: "https://github.com/CompVis/latent-diffusion",
-        tags: ["图像生成", "扩散模型", "AIGC"],
-      },
-      {
-        id: "p7",
-        title: "CLIP: Learning Transferable Visual Models From Natural Language",
-        description: "通过对比学习连接图像和文本，实现零样本图像分类。",
-        authors: "Radford et al.",
-        year: 2021,
-        venue: "ICML",
-        paperUrl: "https://arxiv.org/abs/2103.00020",
-        codeUrl: "https://github.com/openai/CLIP",
-        tags: ["多模态", "对比学习"],
-      },
-    ],
-  },
-  {
-    id: "3",
-    title: "Agent 与推理",
-    description: "探索 LLM 的推理能力与自主决策机制，从 CoT 到 ReAct 的技术演进。",
-    papers: [
-      {
-        id: "p8",
-        title: "Chain-of-Thought Prompting Elicits Reasoning in LLMs",
-        description: "思维链提示方法，显著提升大模型的复杂推理能力。",
-        authors: "Wei et al.",
-        year: 2022,
-        venue: "NeurIPS",
-        paperUrl: "https://arxiv.org/abs/2201.11903",
-        tags: ["推理", "Prompting"],
-      },
-      {
-        id: "p9",
-        title: "ReAct: Synergizing Reasoning and Acting in Language Models",
-        description: "结合推理和行动，让模型能够与外部工具交互完成复杂任务。",
-        authors: "Yao et al.",
-        year: 2022,
-        venue: "ICLR",
-        paperUrl: "https://arxiv.org/abs/2210.03629",
-        codeUrl: "https://github.com/ysymyth/ReAct",
-        tags: ["Agent", "推理"],
-      },
-      {
-        id: "p10",
-        title: "Tree of Thoughts: Deliberate Problem Solving with LLMs",
-        description: "思维树框架，允许模型探索多个推理路径并自我评估。",
-        authors: "Yao et al.",
-        year: 2023,
-        venue: "NeurIPS",
-        paperUrl: "https://arxiv.org/abs/2305.10601",
-        codeUrl: "https://github.com/princeton-nlp/tree-of-thought-llm",
-        tags: ["推理", "Agent"],
-      },
-    ],
-  },
-  {
-    id: "4",
-    title: "模型压缩与量化",
-    description: "让大模型更高效地部署和推理，包括量化、剪枝和知识蒸馏等技术。",
-    papers: [
-      {
-        id: "p11",
-        title: "LLM.int8(): 8-bit Matrix Multiplication for Transformers",
-        description: "首次实现大模型的 8 位量化推理，几乎无精度损失。",
-        authors: "Dettmers et al.",
-        year: 2022,
-        venue: "NeurIPS",
-        paperUrl: "https://arxiv.org/abs/2208.07339",
-        codeUrl: "https://github.com/TimDettmers/bitsandbytes",
-        tags: ["模型量化", "推理"],
-      },
-      {
-        id: "p12",
-        title: "GPTQ: Accurate Post-Training Quantization for GPT",
-        description: "高效的训练后量化方法，支持 3-4 位量化。",
-        authors: "Frantar et al.",
-        year: 2023,
-        venue: "ICLR",
-        paperUrl: "https://arxiv.org/abs/2210.17323",
-        codeUrl: "https://github.com/IST-DASLab/gptq",
-        tags: ["模型量化", "大模型"],
-      },
-      {
-        id: "p13",
-        title: "LoRA: Low-Rank Adaptation of Large Language Models",
-        description: "低秩适应方法，大幅降低微调成本，保持模型性能。",
-        authors: "Hu et al.",
-        year: 2021,
-        venue: "ICLR",
-        paperUrl: "https://arxiv.org/abs/2106.09685",
-        codeUrl: "https://github.com/microsoft/LoRA",
-        tags: ["模型压缩", "微调"],
-      },
-    ],
-  },
-];
+// 统计数据类型
+interface ClassicPapersStats {
+  total_collections: number;
+  total_papers: number;
+  total_tags: number;
+  tags: string[];
+}
 
-// 标签颜色
-const tagColors: Record<string, string> = {
-  "大模型": "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
-  "Transformer": "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800",
-  "预训练": "bg-cyan-100 text-cyan-700 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800",
-  "GPT": "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
-  "RLHF": "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800",
-  "图像生成": "bg-pink-100 text-pink-700 border-pink-200 dark:bg-pink-900/30 dark:text-pink-400 dark:border-pink-800",
-  "扩散模型": "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800",
-  "AIGC": "bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200 dark:bg-fuchsia-900/30 dark:text-fuchsia-400 dark:border-fuchsia-800",
-  "多模态": "bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-900/30 dark:text-violet-400 dark:border-violet-800",
-  "对比学习": "bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800",
-  "推理": "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
-  "Prompting": "bg-lime-100 text-lime-700 border-lime-200 dark:bg-lime-900/30 dark:text-lime-400 dark:border-lime-800",
-  "Agent": "bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-400 dark:border-teal-800",
-  "模型量化": "bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-900/30 dark:text-sky-400 dark:border-sky-800",
-  "模型压缩": "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800",
-  "微调": "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
+// 标签颜色映射
+const getTagColor = (tag: string): string => {
+  const colorMap: Record<string, string> = {
+    "大模型": "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+    "Transformer": "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800",
+    "架构": "bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800",
+    "预训练": "bg-cyan-100 text-cyan-700 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800",
+    "BERT": "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+    "GPT": "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+    "Few-shot": "bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-400 dark:border-teal-800",
+    "RLHF": "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800",
+    "Instruction": "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
+    "开源": "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800",
+    "LLaMA": "bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-900/30 dark:text-violet-400 dark:border-violet-800",
+    "图像生成": "bg-pink-100 text-pink-700 border-pink-200 dark:bg-pink-900/30 dark:text-pink-400 dark:border-pink-800",
+    "扩散模型": "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800",
+    "DDPM": "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+    "AIGC": "bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200 dark:bg-fuchsia-900/30 dark:text-fuchsia-400 dark:border-fuchsia-800",
+    "Stable Diffusion": "bg-pink-100 text-pink-700 border-pink-200 dark:bg-pink-900/30 dark:text-pink-400 dark:border-pink-800",
+    "多模态": "bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-900/30 dark:text-violet-400 dark:border-violet-800",
+    "对比学习": "bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800",
+    "CLIP": "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+    "DALL-E": "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800",
+    "视觉": "bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-900/30 dark:text-sky-400 dark:border-sky-800",
+    "推理": "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
+    "Prompting": "bg-lime-100 text-lime-700 border-lime-200 dark:bg-lime-900/30 dark:text-lime-400 dark:border-lime-800",
+    "CoT": "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
+    "Agent": "bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-400 dark:border-teal-800",
+    "ReAct": "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800",
+    "ToT": "bg-cyan-100 text-cyan-700 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800",
+    "强化学习": "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800",
+    "反思": "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
+    "自主系统": "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800",
+    "AutoGPT": "bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800",
+    "模型量化": "bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-900/30 dark:text-sky-400 dark:border-sky-800",
+    "推理优化": "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+    "INT8": "bg-cyan-100 text-cyan-700 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800",
+    "GPTQ": "bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-400 dark:border-teal-800",
+    "模型压缩": "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800",
+    "微调": "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
+    "LoRA": "bg-lime-100 text-lime-700 border-lime-200 dark:bg-lime-900/30 dark:text-lime-400 dark:border-lime-800",
+    "QLoRA": "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+    "MoE": "bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200 dark:bg-fuchsia-900/30 dark:text-fuchsia-400 dark:border-fuchsia-800",
+    "稀疏模型": "bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-900/30 dark:text-violet-400 dark:border-violet-800",
+    "视觉语言": "bg-pink-100 text-pink-700 border-pink-200 dark:bg-pink-900/30 dark:text-pink-400 dark:border-pink-800",
+    "少样本": "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800",
+    "BLIP": "bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800",
+    "分割": "bg-cyan-100 text-cyan-700 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800",
+    "SAM": "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+    "最佳论文": "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
+    "自回归": "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800",
+    "世界模型": "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800",
+    "Sora": "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+    "长上下文": "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800",
+    "效率": "bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-400 dark:border-teal-800",
+  };
+
+  return colorMap[tag] || "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800";
 };
 
 // 论文项组件
@@ -255,14 +136,10 @@ const PaperItem = ({
   paper,
   index,
   isEditing,
-  onEdit,
-  onDelete,
 }: {
   paper: Paper;
   index: number;
   isEditing: boolean;
-  onEdit: () => void;
-  onDelete: () => void;
 }) => {
   return (
     <div
@@ -273,11 +150,8 @@ const PaperItem = ({
           : "border-border bg-card hover:bg-secondary/30"
       )}
     >
-      {/* 拖拽手柄 & 序号 */}
+      {/* 序号 */}
       <div className="flex items-start gap-2 pt-1">
-        {isEditing && (
-          <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab hover:text-foreground" />
-        )}
         <span className="flex items-center justify-center w-7 h-7 rounded-full bg-primary/10 text-primary text-sm font-semibold">
           {index + 1}
         </span>
@@ -305,10 +179,7 @@ const PaperItem = ({
                 <Badge
                   key={tag}
                   variant="outline"
-                  className={cn(
-                    "text-xs",
-                    tagColors[tag] || "bg-secondary text-secondary-foreground"
-                  )}
+                  className={cn("text-xs", getTagColor(tag))}
                 >
                   {tag}
                 </Badge>
@@ -318,47 +189,27 @@ const PaperItem = ({
 
           {/* 操作按钮 */}
           <div className="flex items-center gap-1 shrink-0">
-            {paper.paperUrl && (
+            {paper.paper_url && (
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-8 px-2 text-muted-foreground hover:text-primary"
-                onClick={() => window.open(paper.paperUrl, "_blank")}
+                onClick={() => window.open(paper.paper_url, "_blank")}
               >
                 <FileText className="h-4 w-4 mr-1" />
                 Paper
               </Button>
             )}
-            {paper.codeUrl && (
+            {paper.code_url && (
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-8 px-2 text-muted-foreground hover:text-foreground"
-                onClick={() => window.open(paper.codeUrl, "_blank")}
+                onClick={() => window.open(paper.code_url, "_blank")}
               >
                 <Github className="h-4 w-4 mr-1" />
                 Code
               </Button>
-            )}
-            {isEditing && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-primary"
-                  onClick={onEdit}
-                >
-                  <Edit3 className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                  onClick={onDelete}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </>
             )}
           </div>
         </div>
@@ -385,6 +236,7 @@ const CollectionCard = ({
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
+                  {collection.icon && <span className="text-2xl">{collection.icon}</span>}
                   <CardTitle className="text-xl">{collection.title}</CardTitle>
                   <Badge variant="secondary" className="text-xs">
                     {collection.papers.length} 篇论文
@@ -394,25 +246,12 @@ const CollectionCard = ({
                   {collection.description}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                {isEditing && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Edit3 className="h-3 w-3 mr-1" />
-                    编辑合集
-                  </Button>
+              <div className="p-2">
+                {isOpen ? (
+                  <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
                 )}
-                <div className="p-2">
-                  {isOpen ? (
-                    <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                  ) : (
-                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                  )}
-                </div>
               </div>
             </div>
           </CardHeader>
@@ -421,25 +260,16 @@ const CollectionCard = ({
           <CardContent className="pt-0">
             <Separator className="mb-4" />
             <div className="space-y-3">
-              {collection.papers.map((paper, index) => (
-                <PaperItem
-                  key={paper.id}
-                  paper={paper}
-                  index={index}
-                  isEditing={isEditing}
-                  onEdit={() => {}}
-                  onDelete={() => {}}
-                />
-              ))}
-              {isEditing && (
-                <Button
-                  variant="outline"
-                  className="w-full border-dashed text-muted-foreground hover:text-primary hover:border-primary"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  添加论文
-                </Button>
-              )}
+              {collection.papers
+                .sort((a, b) => a.collection_order - b.collection_order)
+                .map((paper, index) => (
+                  <PaperItem
+                    key={paper.id}
+                    paper={paper}
+                    index={index}
+                    isEditing={isEditing}
+                  />
+                ))}
             </div>
           </CardContent>
         </CollapsibleContent>
@@ -451,6 +281,52 @@ const CollectionCard = ({
 const ClassicPapers = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [stats, setStats] = useState<ClassicPapersStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // 获取经典论文合集
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [collectionsResponse, statsResponse] = await Promise.all([
+          api.classicPapers.getCollections(),
+          api.classicPapers.getStats(),
+        ]);
+
+        if (collectionsResponse.success) {
+          setCollections(collectionsResponse.data);
+        }
+        if (statsResponse.success) {
+          setStats(statsResponse.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch classic papers:", error);
+        toast.error("加载经典论文失败");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="pt-16">
+          <div className="container mx-auto px-4 py-8">
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
+              <span className="text-muted-foreground">加载中...</span>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -469,70 +345,36 @@ const ClassicPapers = () => {
                   精选 AI 领域必读论文，按主题分类整理，助你系统性学习
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                {isEditing ? (
-                  <>
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsEditing(false)}
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      取消
-                    </Button>
-                    <Button
-                      className="gradient-primary text-white"
-                      onClick={() => setIsEditing(false)}
-                    >
-                      <Save className="h-4 w-4 mr-2" />
-                      保存更改
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsEditing(true)}
-                  >
-                    <Edit3 className="h-4 w-4 mr-2" />
-                    编辑模式
-                  </Button>
-                )}
-              </div>
             </div>
-
-            {/* Edit Mode Banner */}
-            {isEditing && (
-              <div className="p-4 rounded-lg bg-primary/10 border border-primary/30 mb-6">
-                <div className="flex items-center gap-2 text-primary">
-                  <Edit3 className="h-5 w-5" />
-                  <span className="font-medium">编辑模式已开启</span>
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  你可以添加、编辑、删除论文，或拖拽调整论文顺序
-                </p>
-              </div>
-            )}
           </div>
 
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Main Content */}
             <div className="flex-1 space-y-6">
-              {mockCollections.map((collection) => (
-                <CollectionCard
-                  key={collection.id}
-                  collection={collection}
-                  isEditing={isEditing}
-                />
-              ))}
-
-              {isEditing && (
-                <Button
-                  variant="outline"
-                  className="w-full h-20 border-dashed text-muted-foreground hover:text-primary hover:border-primary"
-                  onClick={() => setAddDialogOpen(true)}
-                >
-                  <Plus className="h-5 w-5 mr-2" />
-                  创建新合集
-                </Button>
+              {collections.length > 0 ? (
+                collections
+                  .sort((a, b) => a.display_order - b.display_order)
+                  .map((collection) => (
+                    <CollectionCard
+                      key={collection.id}
+                      collection={collection}
+                      isEditing={isEditing}
+                    />
+                  ))
+              ) : (
+                <Card className="border-border shadow-card">
+                  <CardContent className="py-16">
+                    <div className="text-center">
+                      <BookOpen className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
+                      <h2 className="text-xl font-semibold text-foreground mb-2">
+                        暂无论文合集
+                      </h2>
+                      <p className="text-muted-foreground">
+                        经典论文正在整理中，敬请期待
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
             </div>
 
@@ -578,44 +420,32 @@ const ClassicPapers = () => {
                 </CardContent>
               </Card>
 
-              {/* Author Info */}
-              <Card className="border-border shadow-card">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <User className="h-5 w-5 text-primary" />
-                    关于作者
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">
-                  <p className="mb-2">
-                    <strong className="text-foreground">宫凡</strong>
-                  </p>
-                  <p>
-                    专注于 AI 工程与研究，致力于将前沿技术转化为可落地的工程实践。
-                    本合集基于个人学习与研究经验整理。
-                  </p>
-                </CardContent>
-              </Card>
-
               {/* Stats */}
-              <Card className="border-border shadow-card bg-primary/5">
-                <CardContent className="pt-6">
-                  <div className="grid grid-cols-2 gap-4 text-center">
-                    <div>
-                      <p className="text-2xl font-bold text-primary">
-                        {mockCollections.length}
-                      </p>
-                      <p className="text-xs text-muted-foreground">论文合集</p>
+              {stats && (
+                <Card className="border-border shadow-card bg-primary/5">
+                  <CardContent className="pt-6">
+                    <div className="grid grid-cols-2 gap-4 text-center">
+                      <div>
+                        <p className="text-2xl font-bold text-primary">
+                          {stats.total_collections}
+                        </p>
+                        <p className="text-xs text-muted-foreground">论文合集</p>
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-primary">
+                          {stats.total_papers}
+                        </p>
+                        <p className="text-xs text-muted-foreground">收录论文</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-2xl font-bold text-primary">
-                        {mockCollections.reduce((acc, c) => acc + c.papers.length, 0)}
+                    <div className="mt-4 pt-4 border-t border-border/50">
+                      <p className="text-center text-sm text-muted-foreground">
+                        覆盖 {stats.total_tags} 个标签
                       </p>
-                      <p className="text-xs text-muted-foreground">收录论文</p>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
             </aside>
           </div>
         </div>
@@ -649,7 +479,10 @@ const ClassicPapers = () => {
             </Button>
             <Button
               className="gradient-primary text-white"
-              onClick={() => setAddDialogOpen(false)}
+              onClick={() => {
+                toast.info("此功能需要管理员权限");
+                setAddDialogOpen(false);
+              }}
             >
               创建合集
             </Button>
@@ -661,7 +494,7 @@ const ClassicPapers = () => {
       <footer className="border-t border-border py-8 bg-secondary/30">
         <div className="container mx-auto px-4 text-center">
           <p className="text-sm text-muted-foreground">
-            © 2024 AI Learning Hub. Created by 宫凡
+            © 2024 AI Learning Hub. Powered by AI Muse Blog
           </p>
         </div>
       </footer>

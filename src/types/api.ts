@@ -10,12 +10,17 @@ export interface ApiError {
 }
 
 // Pagination Types
-export interface PaginatedResponse<T> {
-  items: T[];
+export interface PaginationMeta {
   total: number;
   page: number;
   page_size: number;
   total_pages: number;
+}
+
+export interface PaginatedResponse<T> {
+  success: boolean;
+  data: T[];
+  pagination: PaginationMeta;
 }
 
 // Auth Types

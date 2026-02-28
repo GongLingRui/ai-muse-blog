@@ -61,7 +61,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(false);
     };
 
-    checkSession();
+    checkSession().catch((error) => {
+      console.error('Session check failed:', error);
+      setLoading(false);
+    });
   }, []);
 
   const login = async (credentials: LoginRequest) => {

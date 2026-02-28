@@ -3,6 +3,7 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useArticles, useArticle, useCreateArticle, useUpdateArticle, useDeleteArticle } from '../useArticles'
 import { toast } from 'sonner'
+import { api } from '@/lib/api'
 
 // Mock API
 vi.mock('@/lib/api', () => ({
@@ -60,20 +61,17 @@ describe('useArticles', () => {
   })
 
   it('fetches articles with params', async () => {
-    const { api } = require('@/lib/api')
-
     renderHook(() => useArticles({ page: 2, page_size: 10 }), {
       wrapper: createWrapper(),
     })
 
     await waitFor(() => {
-      expect(api.articles.list).toHaveBeenCalledWith({ page: 2, page_size: 10 })
+      expect(vi.mocked(api).articles.list).toHaveBeenCalledWith({ page: 2, page_size: 10 })
     })
   })
 
   it('handles articles list error', async () => {
-    const { api } = require('@/lib/api')
-    api.articles.list = vi.fn(() => Promise.reject(new Error('Failed to fetch')))
+    vi.mocked(api).articles.list = vi.fn(() => Promise.reject(new Error('Failed to fetch')))
 
     const { result } = renderHook(() => useArticles(), {
       wrapper: createWrapper(),
@@ -98,18 +96,19 @@ describe('useArticle', () => {
   })
 
   it('does not fetch when id is empty', async () => {
-    const { api } = require('@/lib/api')
+    // Clear mock calls before this test
+    vi.mocked(api).articles.get.mockClear()
 
     renderHook(() => useArticle(''), {
       wrapper: createWrapper(),
     })
 
-    expect(api.articles.get).not.toHaveBeenCalled()
+    // Query should not execute due to enabled: !!id
+    expect(vi.mocked(api).articles.get).not.toHaveBeenCalled()
   })
 
   it('handles article error', async () => {
-    const { api } = require('@/lib/api')
-    api.articles.get = vi.fn(() => Promise.reject(new Error('Article not found')))
+    vi.mocked(api).articles.get = vi.fn(() => Promise.reject(new Error('Article not found')))
 
     const { result } = renderHook(() => useArticle('999'), {
       wrapper: createWrapper(),
@@ -137,8 +136,7 @@ describe('useCreateArticle', () => {
   })
 
   it('handles create article error', async () => {
-    const { api } = require('@/lib/api')
-    api.articles.create = vi.fn(() => Promise.reject(new Error('Creation failed')))
+    vi.mocked(api).articles.create = vi.fn(() => Promise.reject(new Error('Creation failed')))
 
     const { result } = renderHook(() => useCreateArticle(), {
       wrapper: createWrapper(),
@@ -172,8 +170,7 @@ describe('useUpdateArticle', () => {
   })
 
   it('handles update article error', async () => {
-    const { api } = require('@/lib/api')
-    api.articles.update = vi.fn(() => Promise.reject(new Error('Update failed')))
+    vi.mocked(api).articles.update = vi.fn(() => Promise.reject(new Error('Update failed')))
 
     const { result } = renderHook(() => useUpdateArticle(), {
       wrapper: createWrapper(),
@@ -204,8 +201,7 @@ describe('useDeleteArticle', () => {
   })
 
   it('handles delete article error', async () => {
-    const { api } = require('@/lib/api')
-    api.articles.delete = vi.fn(() => Promise.reject(new Error('Delete failed')))
+    vi.mocked(api).articles.delete = vi.fn(() => Promise.reject(new Error('Delete failed')))
 
     const { result } = renderHook(() => useDeleteArticle(), {
       wrapper: createWrapper(),

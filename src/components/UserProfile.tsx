@@ -73,8 +73,8 @@ const UserProfile = () => {
                 </div>
               ) : articlesData && articlesData.data.length > 0 ? (
                 <div className="space-y-4">
-                  {articlesData.data.map((article) => (
-                    <ArticleCard key={article.id} article={article} />
+                  {articlesData.data.map((article, index) => (
+                    <ArticleCard key={`profile-article-${article.id}-${index}`} article={article} />
                   ))}
                 </div>
               ) : (
@@ -95,9 +95,9 @@ const UserProfile = () => {
                 </div>
               ) : bookmarksData && bookmarksData.data.length > 0 ? (
                 <div className="space-y-4">
-                  {bookmarksData.data.map((bookmark) => (
+                  {bookmarksData.data.map((bookmark, index) => (
                     bookmark.article && (
-                      <ArticleCard key={bookmark.id} article={bookmark.article} />
+                      <ArticleCard key={`profile-bookmark-${bookmark.id}-${index}`} article={bookmark.article} />
                     )
                   ))}
                 </div>

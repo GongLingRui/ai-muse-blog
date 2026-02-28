@@ -13,7 +13,7 @@ import {
 export const useArticles = (params?: ArticleListParams, options?: UseQueryOptions<PaginatedResponse<Article>>) => {
   return useQuery({
     queryKey: ['articles', params],
-    queryFn: () => api.articles.list(params as Record<string, string>),
+    queryFn: () => api.articles.list(params as Record<string, string>) as Promise<PaginatedResponse<Article>>,
     ...options,
   });
 };

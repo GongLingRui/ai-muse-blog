@@ -122,9 +122,9 @@ const NotificationPanel = () => {
             </div>
           ) : notifications && notifications.data.length > 0 ? (
             <div className="divide-y divide-border">
-              {notifications.data.map((notification) => (
+              {notifications.data.map((notification, index) => (
                 <div
-                  key={notification.id}
+                  key={`panel-notification-${notification.id}-${index}`}
                   className={cn(
                     "p-4 transition-colors hover:bg-secondary/50",
                     getNotificationColor(notification.type, notification.read)

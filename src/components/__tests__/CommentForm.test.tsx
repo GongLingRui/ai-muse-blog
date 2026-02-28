@@ -3,17 +3,12 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import CommentForm from '../CommentForm'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { useAuth } from '@/hooks'
+import { useCreateComment } from '@/services/queries'
 
 // Mock dependencies
-vi.mock('@/hooks', () => ({
-  useAuth: vi.fn(),
-}))
-
-vi.mock('@/services/queries', () => ({
-  useCreateComment: vi.fn(() => ({
-    mutateAsync: vi.fn(() => Promise.resolve({ id: '1' })),
-  })),
-}))
+vi.mock('@/hooks')
+vi.mock('@/services/queries')
 
 vi.mock('sonner', () => ({
   toast: {
@@ -48,8 +43,7 @@ describe('CommentForm', () => {
   })
 
   it('shows login prompt when user is not authenticated', () => {
-    const { useAuth } = require('@/hooks')
-    useAuth.mockReturnValue({ user: null })
+    vi.mocked(useAuth).mockReturnValue({ user: null })
 
     renderWithProviders(<CommentForm articleId="1" />)
 
@@ -58,8 +52,7 @@ describe('CommentForm', () => {
   })
 
   it('renders comment form when user is authenticated', () => {
-    const { useAuth } = require('@/hooks')
-    useAuth.mockReturnValue({ user: mockUser })
+    vi.mocked(useAuth).mockReturnValue({ user: mockUser })
 
     renderWithProviders(<CommentForm articleId="1" />)
 
@@ -68,13 +61,11 @@ describe('CommentForm', () => {
   })
 
   it('submits comment successfully', async () => {
-    const { useAuth } = require('@/hooks')
-    useAuth.mockReturnValue({ user: mockUser })
+    vi.mocked(useAuth).mockReturnValue({ user: mockUser })
 
     const onSuccess = vi.fn()
-    const { useCreateComment } = require('@/services/queries')
     const mutateAsync = vi.fn(() => Promise.resolve({ id: '1' }))
-    useCreateComment.mockReturnValue({ mutateAsync })
+    vi.mocked(useCreateComment).mockReturnValue({ mutateAsync })
 
     renderWithProviders(<CommentForm articleId="1" onSuccess={onSuccess} />)
 
@@ -95,22 +86,17 @@ describe('CommentForm', () => {
   })
 
   it('shows error when submitting empty comment', async () => {
-    const { useAuth } = require('@/hooks')
-    useAuth.mockReturnValue({ user: mockUser })
+    vi.mocked(useAuth).mockReturnValue({ user: mockUser })
 
     renderWithProviders(<CommentForm articleId="1" />)
 
     const submitButton = screen.getByRole('button', { name: /发表评论/ })
-    fireEvent.click(submitButton)
-
-    await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith('请输入评论内容')
-    })
+    expect(submitButton).toBeDisabled()
+    expect(toast.error).not.toHaveBeenCalled()
   })
 
   it('disables submit button when content is empty', () => {
-    const { useAuth } = require('@/hooks')
-    useAuth.mockReturnValue({ user: mockUser })
+    vi.mocked(useAuth).mockReturnValue({ user: mockUser })
 
     renderWithProviders(<CommentForm articleId="1" />)
 
@@ -119,8 +105,7 @@ describe('CommentForm', () => {
   })
 
   it('enables submit button when content is entered', () => {
-    const { useAuth } = require('@/hooks')
-    useAuth.mockReturnValue({ user: mockUser })
+    vi.mocked(useAuth).mockReturnValue({ user: mockUser })
 
     renderWithProviders(<CommentForm articleId="1" />)
 
@@ -133,8 +118,7 @@ describe('CommentForm', () => {
   })
 
   it('shows cancel button when onCancel is provided', () => {
-    const { useAuth } = require('@/hooks')
-    useAuth.mockReturnValue({ user: mockUser })
+    vi.mocked(useAuth).mockReturnValue({ user: mockUser })
 
     const onCancel = vi.fn()
     renderWithProviders(<CommentForm articleId="1" onCancel={onCancel} />)
@@ -143,8 +127,7 @@ describe('CommentForm', () => {
   })
 
   it('calls onCancel when cancel button is clicked', () => {
-    const { useAuth } = require('@/hooks')
-    useAuth.mockReturnValue({ user: mockUser })
+    vi.mocked(useAuth).mockReturnValue({ user: mockUser })
 
     const onCancel = vi.fn()
     renderWithProviders(<CommentForm articleId="1" onCancel={onCancel} />)
@@ -156,8 +139,7 @@ describe('CommentForm', () => {
   })
 
   it('shows reply button when parentId is provided', () => {
-    const { useAuth } = require('@/hooks')
-    useAuth.mockReturnValue({ user: mockUser })
+    vi.mocked(useAuth).mockReturnValue({ user: mockUser })
 
     renderWithProviders(<CommentForm articleId="1" parentId="parent-1" />)
 
@@ -165,8 +147,7 @@ describe('CommentForm', () => {
   })
 
   it('uses custom placeholder', () => {
-    const { useAuth } = require('@/hooks')
-    useAuth.mockReturnValue({ user: mockUser })
+    vi.mocked(useAuth).mockReturnValue({ user: mockUser })
 
     renderWithProviders(
       <CommentForm articleId="1" placeholder="Write your reply..." />
@@ -176,8 +157,7 @@ describe('CommentForm', () => {
   })
 
   it('hides avatar when showAvatar is false', () => {
-    const { useAuth } = require('@/hooks')
-    useAuth.mockReturnValue({ user: mockUser })
+    vi.mocked(useAuth).mockReturnValue({ user: mockUser })
 
     const { container } = renderWithProviders(
       <CommentForm articleId="1" showAvatar={false} />
@@ -188,12 +168,10 @@ describe('CommentForm', () => {
   })
 
   it('clears content after successful submission', async () => {
-    const { useAuth } = require('@/hooks')
-    useAuth.mockReturnValue({ user: mockUser })
+    vi.mocked(useAuth).mockReturnValue({ user: mockUser })
 
-    const { useCreateComment } = require('@/services/queries')
     const mutateAsync = vi.fn(() => Promise.resolve({ id: '1' }))
-    useCreateComment.mockReturnValue({ mutateAsync })
+    vi.mocked(useCreateComment).mockReturnValue({ mutateAsync })
 
     renderWithProviders(<CommentForm articleId="1" />)
 
@@ -209,15 +187,13 @@ describe('CommentForm', () => {
   })
 
   it('disables form during submission', async () => {
-    const { useAuth } = require('@/hooks')
-    useAuth.mockReturnValue({ user: mockUser })
+    vi.mocked(useAuth).mockReturnValue({ user: mockUser })
 
-    const { useCreateComment } = require('@/services/queries')
     let resolveMutation: (value: any) => void
     const mutateAsync = vi.fn(() => new Promise((resolve) => {
       resolveMutation = resolve
     }))
-    useCreateComment.mockReturnValue({ mutateAsync })
+    vi.mocked(useCreateComment).mockReturnValue({ mutateAsync })
 
     renderWithProviders(<CommentForm articleId="1" />)
 

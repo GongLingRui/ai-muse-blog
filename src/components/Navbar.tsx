@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, PenSquare, Home, Info, LogIn, LogOut, Search, Sun, Moon, FileText, BookOpen, Tag } from "lucide-react";
+import { Menu, X, PenSquare, Home, Info, LogIn, LogOut, Search, Sun, Moon, FileText, BookOpen, Tag, Settings, Bell, Bookmark, User, BookMarked, BarChart3, Clock, Users, Sparkles, Library, GitCompare, HelpCircle, GraduationCap, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -28,8 +28,14 @@ const Navbar = ({ searchQuery = "", onSearchChange }: NavbarProps) => {
 
   const navLinks = [
     { to: "/", label: "首页", icon: Home },
-    { to: "/articles", label: "文章", icon: FileText },
-    { to: "/papers", label: "经典论文", icon: BookOpen },
+    { to: "/papers", label: "论文库", icon: Library },
+    { to: "/daily", label: "每日更新", icon: Sparkles },
+    { to: "/ai-qa", label: "AI助手", icon: HelpCircle },
+    { to: "/comparison", label: "论文对比", icon: GitCompare },
+    { to: "/daily-digest", label: "团队Digest", icon: Users },
+    { to: "/articles", label: "最新文章", icon: FileText },
+    { to: "/classic-papers", label: "经典论文", icon: BookOpen },
+    { to: "/terminology", label: "术语库", icon: GraduationCap },
     { to: "/tags", label: "标签", icon: Tag },
     { to: "/write", label: "写文章", icon: PenSquare },
     { to: "/about", label: "关于", icon: Info },
@@ -125,6 +131,57 @@ const Navbar = ({ searchQuery = "", onSearchChange }: NavbarProps) => {
                     <Link to="/write" className="cursor-pointer">
                       <PenSquare className="h-4 w-4 mr-2" />
                       写文章
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile" className="cursor-pointer">
+                      <User className="h-4 w-4 mr-2" />
+                      个人中心
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/bookmarks" className="cursor-pointer">
+                      <Bookmark className="h-4 w-4 mr-2" />
+                      我的收藏
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/notifications" className="cursor-pointer">
+                      <Bell className="h-4 w-4 mr-2" />
+                      通知中心
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/reading-list" className="cursor-pointer">
+                      <BookMarked className="h-4 w-4 mr-2" />
+                      阅读列表
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/reading-stats" className="cursor-pointer">
+                      <BarChart3 className="h-4 w-4 mr-2" />
+                      阅读统计
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/search-history" className="cursor-pointer">
+                      <Clock className="h-4 w-4 mr-2" />
+                      搜索历史
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/study-groups" className="cursor-pointer">
+                      <Users className="h-4 w-4 mr-2" />
+                      学习小组
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/settings" className="cursor-pointer">
+                      <Settings className="h-4 w-4 mr-2" />
+                      设置
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />

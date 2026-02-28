@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { Search, Filter, ChevronRight, ChevronLeft, PanelLeftClose, PanelLeft } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Search, Filter, ChevronRight, ChevronLeft, PanelLeftClose, PanelLeft, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,112 +8,279 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/Navbar";
 import ArticleCard, { Article } from "@/components/ArticleCard";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
 
-// 预设标签
-const PRESET_TAGS = [
-  { name: "全部", count: 50 },
-  { name: "大模型", count: 15 },
-  { name: "AI", count: 20 },
-  { name: "工程", count: 12 },
-  { name: "攻击", count: 5 },
-  { name: "Agent", count: 8 },
-  { name: "AIGC", count: 10 },
-  { name: "图像生成", count: 7 },
-  { name: "视频生成", count: 4 },
-  { name: "推理", count: 9 },
-  { name: "模型量化", count: 6 },
-];
+interface Tag {
+  id: string;
+  name: string;
+  slug: string;
+  article_count: number;
+  color?: string;
+}
 
-// 模拟所有文章数据
-const allArticles: Article[] = [
-  {
-    id: "1",
-    title: "深入理解 Transformer 架构：从 Attention 到 Multi-Head",
-    excerpt: "本文将深入探讨 Transformer 的核心机制，包括自注意力机制的数学原理、多头注意力的设计思想...",
-    coverImage: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&h=400&fit=crop",
-    author: "宫凡",
-    publishedAt: "2024-01-15",
-    tags: ["大模型", "AI", "工程"],
-  },
-  {
-    id: "2",
-    title: "大模型推理优化：量化技术全解析",
-    excerpt: "模型量化是降低大模型推理成本的关键技术。本文将介绍 INT8、INT4 量化原理...",
-    coverImage: "https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=800&h=400&fit=crop",
-    author: "宫凡",
-    publishedAt: "2024-01-12",
-    tags: ["推理", "模型量化", "大模型"],
-  },
-  {
-    id: "3",
-    title: "构建企业级 AI Agent：架构设计与最佳实践",
-    excerpt: "AI Agent 正在重塑软件开发范式。本文分享如何设计可扩展的 Agent 架构...",
-    coverImage: "https://images.unsplash.com/photo-1676299081847-c3c9b9c6a7a4?w=800&h=400&fit=crop",
-    author: "宫凡",
-    publishedAt: "2024-01-10",
-    tags: ["Agent", "AI", "工程"],
-  },
-  {
-    id: "4",
-    title: "AIGC 时代的图像生成技术发展历程",
-    excerpt: "从 GAN 到 Diffusion Model，图像生成技术经历了多次革命性突破...",
-    coverImage: "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=800&h=400&fit=crop",
-    author: "宫凡",
-    publishedAt: "2024-01-08",
-    tags: ["AIGC", "图像生成", "AI"],
-  },
-  {
-    id: "5",
-    title: "LLM 安全攻防：提示注入与防护策略",
-    excerpt: "大模型的安全问题日益突出。本文分析常见的攻击手法，包括提示注入、越狱攻击...",
-    coverImage: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&h=400&fit=crop",
-    author: "宫凡",
-    publishedAt: "2024-01-05",
-    tags: ["攻击", "大模型", "AI"],
-  },
-  {
-    id: "6",
-    title: "视频生成模型 Sora 技术深度解读",
-    excerpt: "Sora 的发布标志着视频生成进入新纪元。本文解析其技术架构...",
-    coverImage: "https://images.unsplash.com/photo-1536240478700-b869070f9279?w=800&h=400&fit=crop",
-    author: "宫凡",
-    publishedAt: "2024-01-03",
-    tags: ["视频生成", "AIGC", "AI"],
-  },
-  {
-    id: "7",
-    title: "模型微调实战：LoRA 与 QLoRA 对比分析",
-    excerpt: "微调是让通用模型适应特定任务的关键。本文对比 LoRA、QLoRA 等参数高效微调方法...",
-    coverImage: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=400&fit=crop",
-    author: "宫凡",
-    publishedAt: "2024-01-01",
-    tags: ["大模型", "工程", "AI"],
-  },
-  {
-    id: "8",
-    title: "AI 工程化：从研究到生产的完整链路",
-    excerpt: "将 AI 模型部署到生产环境面临诸多挑战。本文分享模型服务化、监控运维的工程经验...",
-    coverImage: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&h=400&fit=crop",
-    author: "宫凡",
-    publishedAt: "2023-12-28",
-    tags: ["工程", "AI", "大模型"],
-  },
-];
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  article_count: number;
+}
+
+// arXiv 论文类型（从 Papers 页面复用）
+interface ArxivPaper {
+  id: string;
+  arxiv_id: string;
+  title: string;
+  authors: string;
+  summary: string;
+  published_date: string;
+  category: string;
+  pdf_url?: string | null;
+  view_count: number;
+}
+
+// 统一的内容类型 - 可以是 Article 或 ArxivPaper
+interface ContentItem extends Article {
+  type?: 'article' | 'paper';
+  arxiv_id?: string;
+  category?: string;
+}
 
 const Articles = () => {
+  const navigate = useNavigate();
   const [selectedTag, setSelectedTag] = useState("全部");
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // 过滤文章
-  const filteredArticles = allArticles.filter((article) => {
-    const matchesTag = selectedTag === "全部" || article.tags.includes(selectedTag);
-    const matchesSearch =
-      searchQuery === "" ||
-      article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      article.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesTag && matchesSearch;
-  });
+  // API 数据状态
+  const [articles, setArticles] = useState<ContentItem[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [total, setTotal] = useState(0);
+  const [papers, setPapers] = useState<ArxivPaper[]>([]);
+
+  // 标签到 arXiv 分类的映射（更完整的映射）
+  const tagToArxivCategory: Record<string, string[]> = {
+    "大模型": ["cs.AI", "cs.CL", "cs.LG"],
+    "AI": ["cs.AI", "cs.CL", "cs.CV", "cs.LG", "cs.NE"],
+    "工程": ["cs.AI", "cs.CL", "cs.LG", "cs.RO"],
+    "攻击": ["cs.CR", "cs.AI"],
+    "Agent": ["cs.AI", "cs.RO", "cs.LG"],
+    "AIGC": ["cs.CV", "cs.CL", "cs.AI"],
+    "图像生成": ["cs.CV"],
+    "视频生成": ["cs.CV"],
+    "推理": ["cs.AI", "cs.LG"],
+    "模型量化": ["cs.LG"],
+    "计算机视觉": ["cs.CV"],
+    "自然语言处理": ["cs.CL"],
+    "机器学习": ["cs.LG", "stat.ML"],
+    "强化学习": ["cs.LG", "cs.AI", "cs.RO"],
+    "深度学习": ["cs.LG", "cs.AI", "cs.CV", "cs.CL"],
+    "Transformer": ["cs.CL", "cs.CV", "cs.LG"],
+    "GPT": ["cs.CL", "cs.AI"],
+    "扩散模型": ["cs.CV", "cs.LG"],
+    "多模态": ["cs.CV", "cs.CL", "cs.AI"],
+    "预训练": ["cs.CL", "cs.LG"],
+    "微调": ["cs.CL", "cs.LG"],
+    "RLHF": ["cs.CL", "cs.AI"],
+    "LoRA": ["cs.LG"],
+    "量化": ["cs.LG"],
+    "分割": ["cs.CV"],
+    "目标检测": ["cs.CV"],
+    "分类": ["cs.CV", "cs.LG"],
+    "推荐系统": ["cs.IR", "cs.LG"],
+    "搜索": ["cs.IR", "cs.CL"],
+    "知识图谱": ["cs.AI", "cs.CL"],
+    "对话系统": ["cs.CL", "cs.AI"],
+    "机器人": ["cs.RO"],
+    "自动驾驶": ["cs.RO", "cs.CV"],
+    "语音识别": ["cs.CL", "cs.SD"],
+    "合成数据": ["cs.AI", "cs.LG", "cs.CV"],
+    "数据增强": ["cs.CV", "cs.LG"],
+    "迁移学习": ["cs.LG", "cs.CV"],
+    "联邦学习": ["cs.LG", "cs.CR"],
+    "可解释性": ["cs.AI", "cs.LG"],
+    "对抗攻击": ["cs.CR", "cs.CV", "cs.LG"],
+    "隐私保护": ["cs.CR", "cs.LG"],
+    "图神经网络": ["cs.LG", "cs.SI"],
+    "时序预测": ["cs.LG", "cs.AI"],
+    "异常检测": ["cs.LG", "cs.CV"],
+    "生成式AI": ["cs.AI", "cs.CL", "cs.CV"],
+    "大语言模型": ["cs.CL", "cs.AI"],
+    "提示工程": ["cs.CL", "cs.AI"],
+    "Agent开发": ["cs.AI", "cs.RO"],
+    "RAG": ["cs.CL", "cs.IR", "cs.AI"],
+    "向量数据库": ["cs.DB", "cs.IR", "cs.AI"],
+  };
+
+  // 获取标签列表
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const response = await api.tags.list() as { success: boolean; data: Tag[] };
+        if (response.success) {
+          setTags(response.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch tags:", error);
+      }
+    };
+    fetchTags();
+  }, []);
+
+  // 获取分类列表
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await api.categories.list() as { success: boolean; data: Category[] };
+        if (response.success) {
+          setCategories(response.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch categories:", error);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  // 获取文章列表
+  useEffect(() => {
+    fetchArticles(true);
+  }, [selectedTag, searchQuery]);
+
+  const fetchArticles = async (reset = false) => {
+    if (reset) {
+      setLoading(true);
+      setPage(1);
+    }
+
+    try {
+      // 1. 获取 Articles
+      const articleParams: Record<string, string> = {
+        page: reset ? "1" : page.toString(),
+        page_size: "20",
+        status: "published",
+      };
+
+      if (searchQuery) {
+        articleParams.search = searchQuery;
+      }
+
+      if (selectedTag !== "全部") {
+        const tag = tags.find(t => t.name === selectedTag);
+        if (tag) {
+          articleParams.tag_id = tag.id;
+        }
+      }
+
+      const [articlesResponse, papersResponse] = await Promise.all([
+        api.articles.list(articleParams),
+        // 获取 Papers（如果有标签筛选，使用对应的 arXiv 分类）
+        (async () => {
+          const paperParams: Record<string, string> = {
+            page: "1",
+            page_size: "20",
+            sort: "published_date",
+            order: "desc",
+          };
+
+          if (searchQuery) {
+            paperParams.search = searchQuery;
+          }
+
+          // 如果选择了特定标签，使用对应的 arXiv 分类
+          if (selectedTag !== "全部" && tagToArxivCategory[selectedTag]) {
+            // 使用第一个匹配的分类
+            paperParams.category = tagToArxivCategory[selectedTag][0];
+          }
+
+          try {
+            return await api.papers.list(paperParams) as {
+              success: boolean;
+              data: ArxivPaper[];
+              pagination: any;
+            };
+          } catch (error) {
+            console.error("Failed to fetch papers:", error);
+            return { success: true, data: [], pagination: {} };
+          }
+        })(),
+      ]);
+
+      let contentItems: ContentItem[] = [];
+
+      // 2. 添加 Articles（标记为 article 类型）
+      if (articlesResponse.success) {
+        const articlesWithType = (articlesResponse.data as Article[]).map(article => ({
+          ...article,
+          type: 'article' as const,
+        }));
+        contentItems = [...contentItems, ...articlesWithType];
+      }
+
+      // 3. 添加 Papers（转换为 Article 格式并标记为 paper 类型）
+      if (papersResponse.success && papersResponse.data) {
+        const papersAsArticles = papersResponse.data.map((paper: ArxivPaper) => ({
+          id: paper.id,
+          title: paper.title,
+          content: paper.summary,
+          excerpt: paper.summary.substring(0, 200) + "...",
+          author: paper.authors.split(",")[0] || "Unknown",
+          author_name: paper.authors.split(",")[0] || "Unknown",
+          author_avatar: null,
+          published_date: paper.published_date,
+          created_at: paper.published_date,
+          updated_at: paper.published_date,
+          category: null,
+          category_id: null,
+          tag_list: [paper.category],
+          cover_image: null,
+          view_count: paper.view_count,
+          like_count: 0,
+          comment_count: 0,
+          type: 'paper' as const,
+          arxiv_id: paper.arxiv_id,
+          category_code: paper.category,
+        } as ContentItem));
+        contentItems = [...contentItems, ...papersAsArticles];
+      }
+
+      // 4. 按发布日期排序（最新的在前）
+      contentItems.sort((a, b) => {
+        const dateA = new Date(a.published_date || a.created_at);
+        const dateB = new Date(b.published_date || b.created_at);
+        return dateB.getTime() - dateA.getTime();
+      });
+
+      if (reset) {
+        setArticles(contentItems);
+      } else {
+        setArticles(prev => [...prev, ...contentItems]);
+      }
+
+      // 计算总数（articles + papers）
+      const articlesTotal = articlesResponse.pagination?.total || 0;
+      const papersTotal = papersResponse.pagination?.total || 0;
+      setTotal(articlesTotal + papersTotal);
+      setHasMore(false); // 简化：不支持无限滚动混合内容
+    } catch (error) {
+      console.error("Failed to fetch articles:", error);
+      toast.error("加载文章失败");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 获取过滤后的标签（合并"全部"选项）
+  const allTags = [
+    { id: "all", name: "全部", slug: "all", article_count: total },
+    ...tags,
+  ];
+
+  const filteredArticles = articles;
 
   return (
     <div className="min-h-screen bg-background">
@@ -157,9 +324,9 @@ const Articles = () => {
           </div>
           <ScrollArea className="h-[calc(100%-60px)]">
             <div className={cn("p-2", !sidebarOpen && "px-1")}>
-              {PRESET_TAGS.map((tag) => (
+              {allTags.map((tag) => (
                 <button
-                  key={tag.name}
+                  key={tag.id}
                   onClick={() => setSelectedTag(tag.name)}
                   title={!sidebarOpen ? tag.name : undefined}
                   className={cn(
@@ -182,7 +349,7 @@ const Articles = () => {
                             : "bg-secondary text-muted-foreground"
                         )}
                       >
-                        {tag.count}
+                        {tag.article_count}
                       </Badge>
                     </>
                   ) : (
@@ -228,7 +395,7 @@ const Articles = () => {
           </div>
           <ScrollArea className="h-[calc(100%-60px)]">
             <div className="p-2">
-              {PRESET_TAGS.map((tag) => (
+              {allTags.map((tag) => (
                 <button
                   key={tag.name}
                   onClick={() => {
@@ -293,12 +460,43 @@ const Articles = () => {
             </div>
 
             {/* Articles Grid */}
-            {filteredArticles.length > 0 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {filteredArticles.map((article) => (
-                  <ArticleCard key={article.id} article={article} />
-                ))}
+            {loading && articles.length === 0 ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="text-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+                  <p className="text-muted-foreground">加载文章中...</p>
+                </div>
               </div>
+            ) : filteredArticles.length > 0 ? (
+              <>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {filteredArticles.map((article, index) => (
+                    <ArticleCard key={`article-${article.id}-${index}`} article={article} />
+                  ))}
+                </div>
+                {hasMore && (
+                  <div className="mt-8 flex justify-center">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setPage(prev => prev + 1);
+                        fetchArticles(false);
+                      }}
+                      disabled={loading}
+                      className="min-w-[120px]"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          加载中...
+                        </>
+                      ) : (
+                        "加载更多"
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="text-center py-16">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-secondary flex items-center justify-center">

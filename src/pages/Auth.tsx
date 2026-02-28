@@ -17,9 +17,10 @@ const loginSchema = z.object({
 });
 
 const registerSchema = z.object({
+  username: z.string().min(3, "用户名至少需要3个字符").max(50, "用户名最多50个字符"),
   email: z.string().email("请输入有效的邮箱地址"),
-  password: z.string().min(6, "密码至少需要6个字符"),
-  confirmPassword: z.string().min(6, "请确认密码"),
+  password: z.string().min(8, "密码至少需要8个字符"),
+  confirmPassword: z.string().min(8, "请确认密码"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "两次输入的密码不一致",
   path: ["confirmPassword"],
@@ -36,6 +37,7 @@ const Auth = () => {
   const [success, setSuccess] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
+    username: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -88,6 +90,7 @@ const Auth = () => {
         navigate("/");
       } else {
         await register({
+          username: formData.username,
           email: formData.email,
           password: formData.password,
         });
@@ -196,6 +199,30 @@ const Auth = () => {
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Username (Register only) */}
+              {!isLogin && (
+                <div className="space-y-2">
+                  <Label htmlFor="username" className="text-foreground">
+                    用户名
+                  </Label>
+                  <div className="relative">
+                    <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="username"
+                      name="username"
+                      type="text"
+                      placeholder="用户名"
+                      value={formData.username}
+                      onChange={handleInputChange}
+                      className="pl-10 bg-secondary/30 border-border/50 focus:border-primary/50 focus:ring-primary/20"
+                    />
+                  </div>
+                  {fieldErrors.username && (
+                    <p className="text-sm text-destructive">{fieldErrors.username}</p>
+                  )}
+                </div>
+              )}
+
               {/* Email */}
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-foreground">
@@ -335,7 +362,7 @@ const Auth = () => {
                   setError(null);
                   setSuccess(null);
                   setFieldErrors({});
-                  setFormData({ email: "", password: "", confirmPassword: "" });
+                  setFormData({ username: "", email: "", password: "", confirmPassword: "" });
                 }}
                 className="ml-1 text-primary hover:text-primary/80 font-medium transition-colors"
               >

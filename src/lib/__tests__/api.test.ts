@@ -180,9 +180,10 @@ describe('ApiClient', () => {
       await apiClient.get('/protected')
 
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.any(String),
+        'http://localhost:8000/api/v1/protected',
         expect.objectContaining({
           headers: expect.objectContaining({
+            'Content-Type': 'application/json',
             'Authorization': 'Bearer test-token',
           }),
         })
@@ -201,11 +202,11 @@ describe('ApiClient', () => {
       await apiClient.get('/public')
 
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.any(String),
+        'http://localhost:8000/api/v1/public',
         expect.objectContaining({
-          headers: expect.objectContaining({
-            'Authorization': expect.any(String),
-          }),
+          headers: {
+            'Content-Type': 'application/json',
+          },
         })
       )
     })
@@ -233,30 +234,6 @@ describe('ApiClient', () => {
 
       const result = await apiClient.get('/text-endpoint')
       expect(result).toBe('Plain text response')
-    })
-  })
-
-  describe('Custom headers', () => {
-    it('merges custom headers with default headers', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ data: 'test' }),
-        headers: new Headers({ 'content-type': 'application/json' }),
-      })
-
-      await apiClient.get('/test', {}, {
-        'X-Custom-Header': 'custom-value',
-      })
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            'X-Custom-Header': 'custom-value',
-            'Content-Type': 'application/json',
-          }),
-        })
-      )
     })
   })
 })

@@ -42,8 +42,8 @@ const BookmarkList = () => {
       </div>
 
       <div className="space-y-4">
-        {bookmarksData.data.map((bookmark) => (
-          <Card key={bookmark.id} className="border-border bg-card">
+        {bookmarksData.data.map((bookmark, index) => (
+          <Card key={`bookmark-${bookmark.id}-${index}`} className="border-border bg-card">
             <CardContent className="pt-6">
               <div className="flex gap-4">
                 {/* Article */}

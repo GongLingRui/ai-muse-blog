@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Save, X, Image, Link2, Eye, Edit3, ChevronDown, Check, Upload } from "lucide-react";
+import { Save, X, Image, Link2, Eye, Edit3, ChevronDown, Check, Upload, Loader2 } from "lucide-react";
 import MDEditor from "@uiw/react-md-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,7 @@ import Navbar from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateArticle, useTags, useCategories } from "@/hooks";
 import { toast } from "sonner";
+import { api } from "@/lib/api";
 
 const WriteArticle = () => {
   const navigate = useNavigate();
@@ -56,11 +57,78 @@ const WriteArticle = () => {
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
   const [imageAlt, setImageAlt] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 链接插入对话框
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [linkText, setLinkText] = useState("");
+
+  // 图片上传处理
+  const handleImageUpload = async (file: File) => {
+    if (!file) return;
+
+    // 验证文件类型
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast.error("请选择支持的图片格式 (JPG, PNG, GIF, WebP)");
+      return;
+    }
+
+    // 验证文件大小 (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("图片大小不能超过 10MB");
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const response = await api.upload.image(file) as {
+        success: boolean;
+        data: {
+          file_url: string;
+          filename: string;
+        };
+      };
+
+      if (response.success && response.data.file_url) {
+        return response.data.file_url;
+      } else {
+        throw new Error("上传失败");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("图片上传失败，请重试");
+      return null;
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  // 处理文件选择
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const uploadedUrl = await handleImageUpload(file);
+    if (uploadedUrl) {
+      setImageUrl(uploadedUrl);
+      toast.success("图片上传成功");
+    }
+  };
+
+  // 处理封面图片上传
+  const handleCoverImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const uploadedUrl = await handleImageUpload(file);
+    if (uploadedUrl) {
+      setCoverImage(uploadedUrl);
+      toast.success("封面图片上传成功");
+    }
+  };
 
   // Auto-generate excerpt from content
   useEffect(() => {
@@ -169,6 +237,41 @@ const WriteArticle = () => {
     );
   }
 
+  // 权限检查 - 只有 author 和 admin 可以写文章
+  if (user?.role !== "admin" && user?.role !== "author") {
+    return (
+      <div className="min-h-screen">
+        <Navbar />
+        <main className="pt-16 min-h-screen flex items-center justify-center px-4">
+          <div className="text-center space-y-4 max-w-md">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+              <Edit3 className="h-8 w-8 text-amber-600 dark:text-amber-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-foreground">权限不足</h2>
+            <p className="text-muted-foreground">
+              写文章功能需要作者权限。当前您的角色是 <span className="font-medium">{user?.role || "user"}</span>，无法发布文章。
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">
+              <Button
+                onClick={() => navigate("/articles")}
+                variant="outline"
+                className="border-border"
+              >
+                浏览文章
+              </Button>
+              <Button
+                onClick={() => navigate("/settings")}
+                className="gradient-primary text-primary-foreground"
+              >
+                查看设置
+              </Button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen">
       <Navbar />
@@ -233,10 +336,25 @@ const WriteArticle = () => {
             <div className="flex gap-2">
               <Input
                 id="coverImage"
-                placeholder="输入图片 URL..."
+                placeholder="输入图片 URL 或上传图片..."
                 value={coverImage}
                 onChange={(e) => setCoverImage(e.target.value)}
                 className="flex-1 bg-secondary/30 border-border/50 focus:border-primary/50"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => document.getElementById('coverImageUpload')?.click()}
+                title="上传封面图片"
+              >
+                <Upload className="h-4 w-4" />
+              </Button>
+              <input
+                id="coverImageUpload"
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                onChange={handleCoverImageUpload}
+                className="hidden"
               />
               <Button
                 variant="outline"
@@ -364,10 +482,11 @@ const WriteArticle = () => {
                   <DialogHeader>
                     <DialogTitle>插入图片</DialogTitle>
                     <DialogDescription>
-                      输入图片 URL 将其插入到文章中
+                      通过 URL 或上传图片将其插入到文章中
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
+                    {/* URL 输入 */}
                     <div className="space-y-2">
                       <Label htmlFor="imageUrl">图片 URL</Label>
                       <Input
@@ -375,9 +494,52 @@ const WriteArticle = () => {
                         placeholder="https://example.com/image.jpg"
                         value={imageUrl}
                         onChange={(e) => setImageUrl(e.target.value)}
+                        disabled={uploadingImage}
                         className="bg-secondary/30 border-border/50"
                       />
                     </div>
+
+                    {/* 分隔线 */}
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1 h-px bg-border/50" />
+                      <span className="text-xs text-muted-foreground">或</span>
+                      <div className="flex-1 h-px bg-border/50" />
+                    </div>
+
+                    {/* 上传按钮 */}
+                    <div className="space-y-2">
+                      <Label>上传图片</Label>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full bg-secondary/30 border-border/50"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingImage}
+                      >
+                        {uploadingImage ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            上传中...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-4 w-4 mr-2" />
+                            选择本地图片
+                          </>
+                        )}
+                      </Button>
+                      <p className="text-xs text-muted-foreground">
+                        支持 JPG、PNG、GIF、WebP 格式，最大 10MB
+                      </p>
+                    </div>
+
                     <div className="space-y-2">
                       <Label htmlFor="imageAlt">图片描述（可选）</Label>
                       <Input
@@ -393,12 +555,14 @@ const WriteArticle = () => {
                     <Button
                       variant="outline"
                       onClick={() => setImageDialogOpen(false)}
+                      disabled={uploadingImage}
                     >
                       取消
                     </Button>
                     <Button
                       onClick={handleInsertImage}
                       className="gradient-tech text-primary-foreground"
+                      disabled={!imageUrl || uploadingImage}
                     >
                       插入
                     </Button>

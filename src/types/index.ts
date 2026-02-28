@@ -2,13 +2,24 @@
 export interface UserProfile {
   id: string;
   email: string;
+  username: string;
   full_name?: string;
   avatar_url?: string;
   bio?: string;
   website?: string;
   location?: string;
+  twitter_username?: string;
+  github_username?: string;
+  linkedin_url?: string;
+  expertise?: string[];
+  role: string;
+  is_verified: boolean;
+  notification_preferences?: {
+    email?: boolean;
+    push?: boolean;
+  };
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   followers_count?: number;
   following_count?: number;
   articles_count?: number;
@@ -162,4 +173,157 @@ export interface ArticleFilters {
 export interface SortOptions {
   field: 'created_at' | 'updated_at' | 'published_at' | 'view_count' | 'like_count';
   order: 'asc' | 'desc';
+}
+
+// Paper Types
+export interface Paper {
+  id: string;
+  arxiv_id: string;
+  title: string;
+  authors: string;
+  summary: string;
+  published_date?: string;
+  category?: string;
+  pdf_url?: string;
+  view_count: number;
+  submitted_by?: string;
+  is_approved: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Reading List Types
+export interface ReadingListItem {
+  id: string;
+  user_id: string;
+  paper_id?: string;
+  article_id?: string;
+  notes?: string;
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  is_read: boolean;
+  order_index: number;
+  estimated_reading_time?: number;
+  source: string;
+  created_at: string;
+  read_at?: string;
+  due_date?: string;
+  paper?: Paper;
+  article?: Article;
+}
+
+export interface ReadingList {
+  id: string;
+  user_id: string;
+  name: string;
+  description?: string;
+  color?: string;
+  icon?: string;
+  is_public: boolean;
+  is_default: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// AI Summary Types
+export interface AISummary {
+  id: string;
+  paper_id?: string;
+  article_id?: string;
+  summary_type: 'short' | 'detailed' | 'bullet_points' | 'key_findings';
+  content: string;
+  language: string;
+  model_name: string;
+  quality_score: number;
+  usefulness_votes: number;
+  generated_at: string;
+  key_points?: string[];
+  tags_suggested?: string[];
+  related_topics?: string[];
+}
+
+// Citation Export Types
+export interface CitationFormat {
+  id: string;
+  name: string;
+  extension: string;
+  description?: string;
+}
+
+export interface CitationExportRequest {
+  paper_ids: string[];
+  format: 'bibtex' | 'endnote' | 'ris' | 'apa' | 'mla' | 'chicago';
+}
+
+export interface CitationExportResponse {
+  format: string;
+  citations: string[];
+  count: number;
+}
+
+// Social Share Types
+export interface ShareTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  platform: string;
+  template: string;
+  hashtags: string[];
+}
+
+export interface SocialShare {
+  platform: string;
+  share_url: string;
+  share_title: string;
+  share_description: string;
+  hashtags?: string[];
+}
+
+// Study Group Types
+export interface StudyGroup {
+  id: string;
+  name: string;
+  description?: string;
+  owner_id: string;
+  is_public: boolean;
+  max_members?: number;
+  focus_areas?: string[];
+  member_count: number;
+  discussion_count: number;
+  created_at: string;
+}
+
+// Annotation Types
+export interface Annotation {
+  id: string;
+  user_id: string;
+  paper_id?: string;
+  article_id?: string;
+  text_anchors?: { start: number; end: number };
+  page_number?: number;
+  section?: string;
+  content: string;
+  annotation_type: 'comment' | 'highlight' | 'question' | 'definition';
+  color: string;
+  is_public: boolean;
+  created_at: string;
+}
+
+// Search History Types
+export interface SearchHistoryItem {
+  id: string;
+  query: string;
+  search_type: string;
+  results_count: number;
+  created_at: string;
+}
+
+// Reading Stats Types
+export interface ReadingStats {
+  total_papers: number;
+  papers_read: number;
+  total_reading_time: number;
+  current_streak: number;
+  longest_streak: number;
+  daily_average: number;
 }

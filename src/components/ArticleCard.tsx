@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Calendar, User, ArrowRight, Heart, Bookmark } from "lucide-react";
+import { Calendar, User, ArrowRight, Heart, Bookmark, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { useState } from "react";
 import { Article as ArticleType } from "@/types";
 
 interface ArticleCardProps {
-  article: ArticleType;
+  article: ArticleType & { type?: 'article' | 'paper'; arxiv_id?: string; category_code?: string };
   className?: string;
 }
 
@@ -31,6 +31,9 @@ const ArticleCard = ({ article, className }: ArticleCardProps) => {
   const toggleLikeMutation = useToggleLike();
   const toggleBookmarkMutation = useToggleBookmark();
 
+  // 判断是否为 arXiv 论文
+  const isPaper = article.type === 'paper' || !!article.arxiv_id;
+
   // Optimistic state for likes
   const [localLiked, setLocalLiked] = useState(article.is_liked || false);
   const { count: likeCount, increment: incrementLikes, decrement: decrementLikes } =
@@ -46,6 +49,9 @@ const ArticleCard = ({ article, className }: ArticleCardProps) => {
       day: "numeric",
     });
   };
+
+  // 导航路径
+  const navigateTo = isPaper ? `/papers/${article.id}` : `/article/${article.id}`;
 
   const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -86,7 +92,7 @@ const ArticleCard = ({ article, className }: ArticleCardProps) => {
   };
 
   return (
-    <Link to={`/article/${article.id}`}>
+    <Link to={navigateTo}>
       <Card
         className={cn(
           "group overflow-hidden border-border bg-card transition-all duration-300 shadow-card",
@@ -95,9 +101,23 @@ const ArticleCard = ({ article, className }: ArticleCardProps) => {
         )}
       >
         <CardHeader className="pt-6">
-          {/* Tags */}
+          {/* Type Badge & Tags */}
           <div className="flex flex-wrap gap-2 mb-3">
-            {article.tags?.slice(0, 3).map((tag) => (
+            {/* arXiv 论文标识 */}
+            {isPaper && (
+              <Badge variant="outline" className="text-xs font-medium bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800">
+                <FileText className="h-3 w-3 mr-1" />
+                arXiv 论文
+              </Badge>
+            )}
+            {/* arXiv 分类（仅论文显示） */}
+            {isPaper && article.category_code && (
+              <Badge variant="outline" className="text-xs font-medium bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
+                {article.category_code}
+              </Badge>
+            )}
+            {/* 文章标签 */}
+            {!isPaper && article.tags?.slice(0, 2).map((tag) => (
               <Badge
                 key={tag.id}
                 variant="outline"
@@ -109,9 +129,9 @@ const ArticleCard = ({ article, className }: ArticleCardProps) => {
                 {tag.name}
               </Badge>
             ))}
-            {(article.tags?.length || 0) > 3 && (
+            {!isPaper && (article.tags?.length || 0) > 2 && (
               <Badge variant="outline" className="text-xs bg-secondary text-muted-foreground">
-                +{(article.tags?.length || 0) - 3}
+                +{(article.tags?.length || 0) - 2}
               </Badge>
             )}
           </div>
@@ -134,11 +154,16 @@ const ArticleCard = ({ article, className }: ArticleCardProps) => {
           <div className="flex items-center space-x-4 text-xs text-muted-foreground">
             <div className="flex items-center space-x-1">
               <User className="h-3.5 w-3.5" />
-              <span>{article.author?.full_name || article.author?.email || "匿名"}</span>
+              <span>
+                {isPaper
+                  ? (article.author_name || article.author?.full_name || article.author?.email || "Unknown")
+                  : (article.author?.full_name || article.author?.email || "匿名")
+                }
+              </span>
             </div>
             <div className="flex items-center space-x-1">
               <Calendar className="h-3.5 w-3.5" />
-              <span>{formatDate(article.created_at)}</span>
+              <span>{formatDate(isPaper ? article.published_date || article.created_at : article.created_at)}</span>
             </div>
           </div>
 
@@ -186,4 +211,5 @@ const ArticleCard = ({ article, className }: ArticleCardProps) => {
   );
 };
 
+export type { ArticleType as Article };
 export default ArticleCard;

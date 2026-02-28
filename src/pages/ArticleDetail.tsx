@@ -392,8 +392,8 @@ const ArticleDetail = () => {
                 {relatedArticles.data
                   .filter((a) => a.id !== article.id)
                   .slice(0, 2)
-                  .map((relatedArticle) => (
-                    <ArticleCard key={relatedArticle.id} article={relatedArticle} />
+                  .map((relatedArticle, index) => (
+                    <ArticleCard key={`related-article-${relatedArticle.id}-${index}`} article={relatedArticle} />
                   ))}
               </div>
             </section>

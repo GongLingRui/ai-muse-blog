@@ -139,7 +139,7 @@ describe('ArticleCard', () => {
     expect(bookmarkButton).toBeInTheDocument()
   })
 
-  it('limits tags to 3 and shows overflow badge', () => {
+  it('limits tags to 2 and shows overflow badge', () => {
     const articleWithManyTags = {
       ...mockArticle,
       tags: [
@@ -152,7 +152,10 @@ describe('ArticleCard', () => {
 
     renderWithProviders(<ArticleCard article={articleWithManyTags} />)
 
-    expect(screen.getByText('+1')).toBeInTheDocument()
+    // Should show first 2 tags and "+2" for the remaining 2 tags
+    expect(screen.getByText('AI')).toBeInTheDocument()
+    expect(screen.getByText('工程')).toBeInTheDocument()
+    expect(screen.getByText('+2')).toBeInTheDocument()
   })
 
   it('renders anonymous author when full_name is missing', () => {

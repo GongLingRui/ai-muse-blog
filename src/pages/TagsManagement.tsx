@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Plus,
   Edit3,
@@ -9,6 +9,7 @@ import {
   X,
   Check,
   Palette,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,14 +37,12 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/Navbar";
 import { toast } from "sonner";
+import { api } from "@/lib/api";
+import { Tag as TagType } from "@/types";
 
-// 标签类型
-interface TagItem {
-  id: string;
-  name: string;
+// 标签项类型（扩展 Tag 类型以包含本地状态）
+interface TagItem extends TagType {
   color: string;
-  articleCount: number;
-  createdAt: string;
 }
 
 // 预设颜色
@@ -67,31 +66,52 @@ const getColorClass = (colorValue: string) => {
   return presetColors.find((c) => c.value === colorValue)?.class || presetColors[0].class;
 };
 
-// 模拟标签数据
-const initialTags: TagItem[] = [
-  { id: "1", name: "大模型", color: "blue", articleCount: 15, createdAt: "2024-01-01" },
-  { id: "2", name: "AI", color: "cyan", articleCount: 20, createdAt: "2024-01-01" },
-  { id: "3", name: "工程", color: "green", articleCount: 12, createdAt: "2024-01-02" },
-  { id: "4", name: "攻击", color: "red", articleCount: 5, createdAt: "2024-01-03" },
-  { id: "5", name: "Agent", color: "purple", articleCount: 8, createdAt: "2024-01-04" },
-  { id: "6", name: "AIGC", color: "pink", articleCount: 10, createdAt: "2024-01-05" },
-  { id: "7", name: "图像生成", color: "orange", articleCount: 7, createdAt: "2024-01-06" },
-  { id: "8", name: "视频生成", color: "yellow", articleCount: 4, createdAt: "2024-01-07" },
-  { id: "9", name: "推理", color: "indigo", articleCount: 9, createdAt: "2024-01-08" },
-  { id: "10", name: "模型量化", color: "teal", articleCount: 6, createdAt: "2024-01-09" },
-];
+// 从 API 响应映射到本地 TagItem
+const mapToTagItem = (tag: TagType): TagItem => ({
+  ...tag,
+  color: tag.color || "blue",
+});
 
 const TagsManagement = () => {
-  const [tags, setTags] = useState<TagItem[]>(initialTags);
+  const [tags, setTags] = useState<TagItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingTag, setEditingTag] = useState<TagItem | null>(null);
   const [deletingTag, setDeletingTag] = useState<TagItem | null>(null);
-  
+
   // 表单状态
   const [formName, setFormName] = useState("");
   const [formColor, setFormColor] = useState("blue");
+
+  // 加载标签数据
+  const loadTags = async () => {
+    setLoading(true);
+    try {
+      const response = await api.tags.list() as {
+        success: boolean;
+        data: TagType[];
+        pagination?: { total: number };
+      };
+
+      if (response.success) {
+        const tagItems = response.data.map(mapToTagItem);
+        setTags(tagItems);
+      }
+    } catch (error) {
+      console.error("Failed to load tags:", error);
+      toast.error("加载标签失败");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 初始加载
+  useEffect(() => {
+    loadTags();
+  }, []);
 
   // 过滤标签
   const filteredTags = tags.filter((tag) =>
@@ -121,7 +141,7 @@ const TagsManagement = () => {
   };
 
   // 保存标签
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formName.trim()) {
       toast.error("请输入标签名称");
       return;
@@ -136,44 +156,73 @@ const TagsManagement = () => {
       return;
     }
 
-    if (editingTag) {
-      // 编辑
-      setTags((prev) =>
-        prev.map((t) =>
-          t.id === editingTag.id
-            ? { ...t, name: formName.trim(), color: formColor }
-            : t
-        )
-      );
-      toast.success("标签已更新");
-    } else {
-      // 新增
-      const newTag: TagItem = {
-        id: Date.now().toString(),
-        name: formName.trim(),
-        color: formColor,
-        articleCount: 0,
-        createdAt: new Date().toISOString().split("T")[0],
-      };
-      setTags((prev) => [...prev, newTag]);
-      toast.success("标签已创建");
-    }
+    setSaving(true);
+    try {
+      if (editingTag) {
+        // 更新标签
+        await api.tags.update(editingTag.id, {
+          name: formName.trim(),
+          description: editingTag.description,
+          color: formColor,
+        });
 
-    setIsDialogOpen(false);
+        // 更新本地状态
+        setTags((prev) =>
+          prev.map((t) =>
+            t.id === editingTag.id
+              ? { ...t, name: formName.trim(), color: formColor }
+              : t
+          )
+        );
+        toast.success("标签已更新");
+      } else {
+        // 创建标签
+        const response = await api.tags.create({
+          name: formName.trim(),
+          color: formColor,
+        }) as TagType;
+
+        // 添加到本地状态
+        const newTag: TagItem = {
+          ...response,
+          color: formColor,
+        };
+        setTags((prev) => [...prev, newTag]);
+        toast.success("标签已创建");
+      }
+
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error("Failed to save tag:", error);
+      toast.error(editingTag ? "更新标签失败" : "创建标签失败");
+    } finally {
+      setSaving(false);
+    }
   };
 
   // 确认删除
-  const handleDelete = () => {
-    if (deletingTag) {
+  const handleDelete = async () => {
+    if (!deletingTag) return;
+
+    setSaving(true);
+    try {
+      await api.tags.delete(deletingTag.id);
+
+      // 从本地状态移除
       setTags((prev) => prev.filter((t) => t.id !== deletingTag.id));
       toast.success("标签已删除");
+      setIsDeleteDialogOpen(false);
+      setDeletingTag(null);
+    } catch (error) {
+      console.error("Failed to delete tag:", error);
+      toast.error("删除标签失败");
+    } finally {
+      setSaving(false);
     }
-    setIsDeleteDialogOpen(false);
-    setDeletingTag(null);
   };
 
   // 统计
-  const totalArticles = tags.reduce((acc, t) => acc + t.articleCount, 0);
+  const totalArticles = tags.reduce((acc, t) => acc + (t.articles_count || 0), 0);
 
   return (
     <div className="min-h-screen bg-background">
@@ -267,87 +316,101 @@ const TagsManagement = () => {
             />
           </div>
 
-          {/* Tags Grid */}
-          <Card className="border-border shadow-card">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Tag className="h-5 w-5 text-primary" />
-                所有标签 ({filteredTags.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {filteredTags.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredTags.map((tag) => (
-                    <div
-                      key={tag.id}
-                      className="group flex items-center justify-between p-4 rounded-lg border border-border bg-card hover:bg-secondary/30 transition-all"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Badge
-                          variant="outline"
-                          className={cn("text-sm font-medium", getColorClass(tag.color))}
-                        >
-                          {tag.name}
-                        </Badge>
-                        <span className="text-sm text-muted-foreground">
-                          {tag.articleCount} 篇文章
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-primary"
-                          onClick={() => handleEdit(tag)}
-                        >
-                          <Edit3 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDeleteClick(tag)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+          {/* Loading State */}
+          {loading ? (
+            <Card className="border-border shadow-card">
+              <CardContent className="py-12">
+                <div className="flex flex-col items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+                  <p className="text-muted-foreground">加载标签中...</p>
                 </div>
-              ) : (
-                <div className="text-center py-12">
-                  <Tag className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                  <p className="text-lg font-medium text-foreground mb-1">
-                    {searchQuery ? "未找到匹配的标签" : "暂无标签"}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {searchQuery ? "请尝试其他搜索词" : "点击上方按钮创建第一个标签"}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          ) : (
+            /* Tags Grid */
+            <Card className="border-border shadow-card">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Tag className="h-5 w-5 text-primary" />
+                  所有标签 ({filteredTags.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {filteredTags.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredTags.map((tag) => (
+                      <div
+                        key={tag.id}
+                        className="group flex items-center justify-between p-4 rounded-lg border border-border bg-card hover:bg-secondary/30 transition-all"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Badge
+                            variant="outline"
+                            className={cn("text-sm font-medium", getColorClass(tag.color))}
+                          >
+                            {tag.name}
+                          </Badge>
+                          <span className="text-sm text-muted-foreground">
+                            {tag.articles_count || 0} 篇文章
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-primary"
+                            onClick={() => handleEdit(tag)}
+                          >
+                            <Edit3 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                            onClick={() => handleDeleteClick(tag)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Tag className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                    <p className="text-lg font-medium text-foreground mb-1">
+                      {searchQuery ? "未找到匹配的标签" : "暂无标签"}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {searchQuery ? "请尝试其他搜索词" : "点击上方按钮创建第一个标签"}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Tag Preview Section */}
-          <Card className="border-border shadow-card mt-6">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">标签预览</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {tags.map((tag) => (
-                  <Badge
-                    key={tag.id}
-                    variant="outline"
-                    className={cn("text-sm cursor-pointer hover:scale-105 transition-transform", getColorClass(tag.color))}
-                  >
-                    {tag.name}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          {!loading && (
+            <Card className="border-border shadow-card mt-6">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">标签预览</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {tags.map((tag) => (
+                    <Badge
+                      key={tag.id}
+                      variant="outline"
+                      className={cn("text-sm cursor-pointer hover:scale-105 transition-transform", getColorClass(tag.color))}
+                    >
+                      {tag.name}
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </main>
 
@@ -414,12 +477,16 @@ const TagsManagement = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={saving}>
               <X className="h-4 w-4 mr-2" />
               取消
             </Button>
-            <Button onClick={handleSave} className="gradient-primary text-white">
-              <Save className="h-4 w-4 mr-2" />
+            <Button onClick={handleSave} className="gradient-primary text-white" disabled={saving}>
+              {saving ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
               {editingTag ? "保存更改" : "创建标签"}
             </Button>
           </DialogFooter>
@@ -433,19 +500,23 @@ const TagsManagement = () => {
             <AlertDialogTitle>确认删除标签？</AlertDialogTitle>
             <AlertDialogDescription>
               你确定要删除标签 <strong>"{deletingTag?.name}"</strong> 吗？
-              {deletingTag && deletingTag.articleCount > 0 && (
+              {deletingTag && (deletingTag.articles_count || 0) > 0 && (
                 <span className="block mt-2 text-amber-600 dark:text-amber-400">
-                  注意：该标签已被 {deletingTag.articleCount} 篇文章使用，删除后相关文章的标签关联将被移除。
+                  注意：该标签已被 {deletingTag.articles_count} 篇文章使用，删除后相关文章的标签关联将被移除。
                 </span>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogCancel disabled={saving}>取消</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={saving}
             >
+              {saving ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : null}
               确认删除
             </AlertDialogAction>
           </AlertDialogFooter>
